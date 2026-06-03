@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=pulse.html">
+<title>Pulse 選股工具</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #faf8f3;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.box {
+  text-align: center;
+  max-width: 480px;
+}
+.brand {
+  font-family: "Caveat", "Noto Sans TC", cursive;
+  font-size: 56px;
+  color: #c43030;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.subtitle {
+  font-size: 14px;
+  color: #64748b;
+  letter-spacing: 2px;
+  margin-bottom: 32px;
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #c43030;
+  border-radius: 50%;
+  margin: 24px auto;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 40px;
+}
+.alts {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.alts a {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  color: #1e293b;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.alts a:hover {
+  background: #f1f5f9;
+}
+.alts a.primary {
+  background: #c43030;
+  color: white;
+  border-color: #c43030;
+}
+.alts a.primary:hover {
+  background: #a82626;
+}
+@font-face {
+  font-family: "Caveat";
+  src: local("Caveat");
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="box">
+  <div class="brand">Pulse</div>
+  <div class="subtitle">產業 × 動能 × 選股</div>
+
+  <div class="spinner"></div>
+  <p class="loading">正在進入選股工具...</p>
+
+  <div class="alts">
+    <a href="pulse.html" class="primary">📊 進入 Pulse</a>
+    <a href="mindmap.html">🧠 上下游心智圖</a>
+  </div>
+</div>
+</body>
+</html>
