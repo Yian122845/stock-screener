@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse · 產業心智圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* === 三色主軸 === */
+  /* 霧灰藍 #75899B（冷調主色） */
+  /* 暖駝色 #BD8F6B（暖調強調） */
+  /* 中性灰 #969696（中性平衡） */
+
+  body {
+    font-family: 'Inter', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: linear-gradient(180deg, #e8e2d8 0%, #d8d0c4 100%);
+    color: #3a2e26;
+    overflow-x: hidden;
+    position: relative;
+  }
+  /* 紙張紋理：fine noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.18  0 0 0 0 0.15  0 0 0 0.1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: multiply;
+  }
+  header, main, #breadcrumb, .max-w-\[1600px\] { position: relative; z-index: 1; }
+  .font-script { font-family: 'Caveat', cursive; }
+  .text-navy { color: #3a2e26; }
+
+  /* 卡片色彩——以三主色為基，往淺色延伸 */
+  .bg-blush { background: #ecd9c5; }         /* 駝色淡版（暖） */
+  .bg-cream { background: #e6d2b8; }         /* 駝色更暖 */
+  .bg-cream-soft { background: #f0e3d0; }
+  .bg-sand { background: #d8b89c; }          /* 駝色標準（強調用） */
+  .bg-sky { background: #d2d4d6; }           /* 灰藍 → 更灰、更深 */
+  .bg-sky-soft { background: #dfe0e1; }
+  .bg-lilac { background: #bcc2c8; }         /* 灰藍中等 → 飽和度降、明度降 */
+  .bg-lilac-soft { background: #d4d6d9; }
+  .bg-mint { background: #d2d0cb; }          /* 中性灰淡版 */
+  .bg-mint-soft { background: #e2e0db; }
+
+  /* 連接線——三色基調 */
+  .stroke-upstream { stroke: #5e7080; }      /* 灰藍 → 深一檔 */
+  .stroke-downstream { stroke: #BD8F6B; }    /* 駝色 */
+  .stroke-customer { stroke: #a07d5d; }      /* 駝深 */
+  .stroke-peer { stroke: #969696; }          /* 中性灰 */
+  .stroke-cross { stroke: #8a7d72; }         /* 駝灰過渡 */
+
+  @keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  .fade-up { animation: fadeUp 0.5s ease both; }
+
+  @keyframes dashFlow {
+    to { stroke-dashoffset: -12; }
+  }
+  .line-animated {
+    stroke-dasharray: 4 6;
+    animation: dashFlow 1.4s linear infinite;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* 衛星節點——奶油駝統一 */
+  .satellite-node {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    background: #f5ede0 !important;
+    color: #3a2e26;
+  }
+  .satellite-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -8px rgba(58, 46, 38, 0.22);
+  }
+
+  /* SVG 連接線層 */
+  #connection-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .mind-map {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* 心智圖容器——奶油駝感 */
+  #mind-map-wrapper {
+    background: rgba(245, 237, 224, 0.55) !important;
+    backdrop-filter: blur(8px);
+    border-color: rgba(93, 74, 62, 0.22) !important;
+    box-shadow: 0 4px 24px -8px rgba(58, 46, 38, 0.12);
+  }
+
+  /* 中心節點——奶油底 + 駝棕邊 */
+  .central-node {
+    background: #faf5ed;
+    border: 2px solid #5d4a3e;
+    box-shadow: 0 20px 60px -20px rgba(58, 46, 38, 0.3), 0 4px 12px -4px rgba(58, 46, 38, 0.12);
+  }
+
+  /* 衛星節點分組標籤——改用駝棕避免藍色過亮 */
+  .group-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #75645a;
+    font-weight: 600;
+  }
+
+  /* 題材 chip 配色——三色軸區分四題材 */
+  .theme-chip {
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(58, 46, 38, 0.08);
+    color: #3a2e26;
+  }
+  .theme-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(58, 46, 38, 0.18);
+  }
+  .theme-chip.active {
+    box-shadow: inset 0 0 0 2px rgba(58, 46, 38, 0.55), 0 2px 6px rgba(58, 46, 38, 0.15);
+  }
+
+  /* tailwind 預設色覆蓋——四題材色字色全部統一深駝棕 */
+  .text-rose-900, .text-amber-900, .text-emerald-900, .text-violet-900 { color: #3a2e26 !important; }
+  .text-rose-500, .text-amber-600, .text-emerald-600, .text-violet-600,
+  .text-rose-700, .text-amber-700, .text-emerald-700, .text-violet-700 { color: #75645a !important; }
+  .text-rose-500.ml-1, .text-violet-500.ml-1 { color: #a07d5d !important; }
+
+  /* 元大評等的琥珀色 badge → 駝色淡版 */
+  .bg-amber-50 { background-color: rgba(189, 143, 107, 0.18) !important; }
+
+  /* 「逐字稿關鍵訊號」摘要區塊 → 駝色淡版（之前藍太亮） */
+  .bg-amber-50\/60 { background-color: rgba(189, 143, 107, 0.16) !important; }
+  .border-amber-100 { border-color: rgba(189, 143, 107, 0.35) !important; }
+
+  /* Chip hover 預設色覆蓋——統一駝色淡版 */
+  .hover\:bg-rose-100:hover,
+  .hover\:bg-amber-100:hover,
+  .hover\:bg-emerald-100:hover,
+  .hover\:bg-violet-100:hover {
+    background-color: rgba(189, 143, 107, 0.28) !important;
+  }
+
+  /* chip 邊框顏色覆蓋——統一駝棕 */
+  .border-rose-200\/60, .border-amber-200\/60,
+  .border-emerald-200\/60, .border-violet-200\/60 {
+    border-color: rgba(93, 74, 62, 0.22) !important;
+  }
+</style>
+</style>
+<script src="data/financials.js"></script>
+</head>
+<body class="text-navy">
+
+<!-- Header -->
+<header class="px-6 pt-5 pb-3 max-w-[1600px] mx-auto">
+  <div class="flex items-baseline justify-between mb-2">
+    <h1 class="font-script text-4xl text-navy leading-none">Pulse</h1>
+    <div class="flex items-center gap-3">
+      <span class="text-[10px] text-slate-500 tracking-widest uppercase">產業心智圖</span>
+      <span class="text-[10px] text-slate-400">v0.5 · 121 檔 · 4 題材 · 20 跨點訊號</span>
+    </div>
+  </div>
+  <p class="text-xs text-slate-500 italic mb-3">上=上游 · 下=下游/終端 · 左=同業 · 右=跨題材 · 🟢 STRONG 🟡 MEDIUM ⚪ WEAK · 點 chip 跳到題材代表股</p>
+
+  <!-- 題材切換 Chips -->
+  <div class="flex flex-wrap gap-2">
+    <button data-jump="6669" class="theme-chip bg-blush border border-rose-200/60 text-rose-900 rounded-full px-3 py-1 text-xs font-semibold hover:bg-rose-100 transition-colors">
+      AI 伺服器 <span class="text-rose-500 ml-1">71 檔</span>
+    </button>
+    <button data-jump="6239" class="theme-chip bg-sand border border-amber-200/60 text-amber-900 rounded-full px-3 py-1 text-xs font-semibold hover:bg-amber-100 transition-colors">
+      FOPLP / 玻璃基板 <span class="text-amber-600 ml-1">27 檔</span>
+    </button>
+    <button data-jump="2049" class="theme-chip bg-mint border border-emerald-200/60 text-emerald-900 rounded-full px-3 py-1 text-xs font-semibold hover:bg-emerald-100 transition-colors">
+      機器人 / 自動化 <span class="text-emerald-600 ml-1">14 檔</span>
+    </button>
+    <button data-jump="1519" class="theme-chip bg-lilac border border-violet-200/60 text-violet-900 rounded-full px-3 py-1 text-xs font-semibold hover:bg-violet-100 transition-colors">
+      AIDC 電力鏈 <span class="text-violet-600 ml-1">9 檔</span>
+      <span class="text-violet-500 text-[9px] ml-1">NEW</span>
+    </button>
+  </div>
+</header>
+
+<!-- Breadcrumb -->
+<div class="px-6 mb-2 max-w-[1600px] mx-auto">
+  <div id="breadcrumb" class="flex items-center gap-1.5 text-[11px] text-slate-500 overflow-x-auto scrollbar-hide pb-1"></div>
+</div>
+
+<!-- Mind Map Container -->
+<div class="px-6 pb-8 max-w-[1600px] mx-auto">
+  <div id="mind-map-wrapper" class="relative min-h-[820px] bg-white/40 backdrop-blur-sm rounded-3xl border border-slate-200/50 p-6 md:p-10">
+    <svg id="connection-svg" preserveAspectRatio="none"></svg>
+    <div id="mind-map" class="mind-map">
+
+      <!-- 上游區 -->
+      <div id="upstream-zone" class="mb-8"></div>
+
+      <!-- 中間三欄：左同業 / 中心 / 右跨題材 -->
+      <div class="grid items-center gap-6 mb-8" style="grid-template-columns: minmax(180px, 220px) 1fr minmax(180px, 240px);">
+        <div id="peers-zone"></div>
+        <div id="center-zone" class="flex items-center justify-center"></div>
+        <div id="cross-zone"></div>
+      </div>
+
+      <!-- 下游區 -->
+      <div id="downstream-zone"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick jump -->
+<div class="px-6 mb-6 max-w-[1600px] mx-auto">
+  <div class="text-[10px] tracking-widest uppercase text-slate-500 mb-2">快速跳轉</div>
+  <div id="suggestions" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1"></div>
+</div>
+
+<footer class="px-6 py-6 border-t border-slate-200/60 mt-4 max-w-[1600px] mx-auto">
+  <div class="text-[10px] tracking-widest uppercase text-slate-500 mb-2">關於</div>
+  <p class="text-xs text-slate-500 leading-relaxed">
+    上下游邏輯依資金流向定義：上=供應商、下=客戶。各 layer 嚴格限定關聯範圍。點任何卡片可重新以該股為中心，麵包屑記錄瀏覽軌跡。SVG 連接線在 resize 時自動重繪。
+    <strong class="text-slate-700">v0.6 更新</strong>：個股 detail popup 內加「💰 財務動能」區塊（FinMind 月營收 YoY sparkline + 季度損益 + 連續正成長月數 + 毛利率趨勢）。資料涵蓋 89 檔 mapping 個股，2024-01 至今。
+  </p>
+</footer>
+
+<!-- 中心個股詳細資訊 Popup -->
+<div id="central-detail-panel" class="hidden fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-stone-900/40 backdrop-blur-sm" onclick="if(event.target===this) closeCentralDetail()">
+  <div class="bg-white max-h-[92vh] overflow-y-auto rounded-t-3xl md:rounded-3xl w-full md:max-w-4xl shadow-2xl">
+    <div id="central-detail-content" class="p-5 md:p-8"></div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// STOCK DATABASE (與 industry_tree_prototype.html 同步)
+// ============================================
+const STOCKS_DB = {
+  '6669': { ticker:'6669', name:'緯穎', mapping:'AI伺服器V2', layer:'系統層', subcategory:'ODM', role:'Meta OCP + AWS TRN3 + Meta MI455 主供', desc:'緯創 100% 子公司，專精雲端運算設備代工。Meta OCP 重要夥伴，AWS Trainium TRN3 主供，AMD Helios ORW Meta 版本主供。1Q26 營收年增 62%。', customers:['Meta','Microsoft','AWS','AMD'], yuanta:'買進', tp:6600, huitai:true, cross:[] },
+  '3017': { ticker:'3017', name:'奇鋐', mapping:'AI伺服器V2', layer:'周邊層', subcategory:'散熱', role:'液冷 CDU + 水冷板 + 風扇龍頭', desc:'液冷散熱龍頭。水冷板/CDU/風扇全方位供應。2Q26 美系 CSP GB300 出貨量雙位數季增。', customers:['NVIDIA','美系 CSP'], yuanta:'買進', tp:3610, huitai:true, cross:[] },
+  '2464': { ticker:'2464', name:'盟立', mapping:'機器人V1', layer:'中游系統整合', subcategory:'半導體 AMHS + 人形機器人', role:'半導體 AMHS + 諧波減速機 + 智能自動化', desc:'半導體先進封裝廠 AMHS 主供。人形機器人諧波減速機 + 關節模組。智能自動化 10M25 恢復接單。', customers:['半導體封裝廠','載板廠','人形機器人廠','物流業'], yuanta:'看法正向', tp:null, huitai:false, cross:[{mapping:'AI伺服器V2', role:'半導體先進封裝廠 AMHS 受惠'},{mapping:'FOPLP V1.1', role:'FOPLP/載板廠擴產受惠'}] },
+  '6805': { ticker:'6805', name:'富世達', mapping:'AI伺服器V2', layer:'周邊層', subcategory:'散熱', role:'水冷頭 + QD 快接 + 滑軌', desc:'散熱配件三料王。2Q26 出 CSP GB300 Compute Tray 水冷頭。Switch 也開始導入水冷。', customers:['NVIDIA','AMD','ASIC 客戶','CSP'], yuanta:'買進', tp:2700, huitai:false, cross:[] },
+  '2330': { ticker:'2330', name:'台積電', mapping:'AI伺服器V2', layer:'核心層', subcategory:'晶圓代工', role:'CoWoS/SoIC 龍頭 + Vera CPU N3 製造', desc:'AI 平台核心。CoWoS/SoIC 全球封裝龍頭。Vera CPU N3 製造商。FOPLP 2027 小量試產。', customers:['NVIDIA','AMD','AVGO','Apple','Google','AWS'], yuanta:'買進', tp:2600, huitai:true, cross:[{mapping:'FOPLP V1.1', role:'AI GPU FOPLP 終端 310×310mm'}] },
+  '3037': { ticker:'3037', name:'欣興', mapping:'AI伺服器V2', layer:'核心層', subcategory:'ABF 載板', role:'ABF 載板全球第二 15.6% 市占', desc:'美系 GPU 客戶 + 美系 CSP 自研 ASIC 載板主供應商之一。AI 晶片大尺寸高層數升級帶動高階 ABF 載板需求。', customers:['Intel','AMD','NVIDIA','美系 CSP'], yuanta:'買進', tp:821, huitai:false, cross:[{mapping:'FOPLP V1.1', role:'ABF 載板三雄'}] },
+  '7415': { ticker:'7415', name:'元澄', mapping:'AI伺服器V2', layer:'傳輸層', subcategory:'矽光子設計', role:'PIC 設計服務 (AMD + 聯發科客戶)', desc:'國內少數 PIC 設計服務商，與 AMD + 聯發科簽定晶片設計服務合約。2028 年客戶有望導入資料中心 GPU/XPU。興櫃。', customers:['AMD','聯發科'], yuanta:'未評等', tp:null, huitai:false, cross:[] },
+  '3653': { ticker:'3653', name:'健策', mapping:'AI伺服器V2', layer:'周邊層', subcategory:'散熱', role:'均熱片 / 散熱模組', desc:'均熱片（Lid）供應商。Rubin 均熱片價格為 B 系列數倍。CPO Ring + Stiffener 2027 開始放量。', customers:['NVIDIA','AVGO'], yuanta:'買進', tp:4270, huitai:false, cross:[] },
+  '6239': { ticker:'6239', name:'力成', mapping:'AI伺服器V2', layer:'核心層', subcategory:'封測', role:'RF/PMIC FOPLP 515×510mm + NAND 委外受惠', desc:'FOPLP 終端封測廠，RF/PMIC 應用。2026 投資 10 億美元擴產，CapEx 大幅上修至 400 億元。', customers:['MTK','AMD','Micron','Kioxia'], yuanta:'買進', tp:290, huitai:false, cross:[{mapping:'FOPLP V1.1', role:'FOPLP 終端封測廠'}] },
+  '2059': { ticker:'2059', name:'川湖', mapping:'AI伺服器V2', layer:'周邊層', subcategory:'滑軌', role:'Vera Rubin 滑軌 80% 市占', desc:'伺服器滑軌龍頭。Vera Rubin 平台 2H26 登場，2026/27 EPS 年增 43%/19% 至 147/174 元。', customers:['NVIDIA GB/ASIC 客戶'], yuanta:'看法正向', tp:null, huitai:false, cross:[] },
+
+  // === 核心層其餘 ===
+  '3711': {ticker:'3711',name:'日月光投控',mapping:'AI伺服器V2',layer:'核心層',subcategory:'封測',role:'後段高階封測 OSAT',customers:['NVIDIA','AMD'],yuanta:'持有-超越同業',tp:null,huitai:true,cross:[],desc:'全球最大 OSAT 封測廠，AI 後段先進封測主力。VI-PACK 技術家族（Focus / Focus Bridge / CPO 系列）。2026 LEAP 收入再翻倍至 32-35 億美元，承接台積電 OSAT 外溢訂單。'},
+  '2449': {ticker:'2449',name:'京元電',mapping:'AI伺服器V2',layer:'核心層',subcategory:'測試',role:'半導體測試 + Burn-in 爐自製',customers:['NVIDIA','Mediatek','AVGO'],yuanta:'買進',tp:370,huitai:false,cross:[],desc:'半導體測試大廠，Burn-in 爐自製。N3 以下先進製程 2026/27 佔比達 60-70%，Google TPU 主要受惠標的。'},
+  '7873': {ticker:'7873',name:'瑞峰半導體',mapping:'AI伺服器V2',layer:'核心層',subcategory:'封測',role:'GF + Fabrinet 矽光子聯盟',customers:['GlobalFoundries','Fabrinet'],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'半導體封裝服務商，12 吋 bump + 3D TSV Reveal + IVR 技術。GlobalFoundries+Fabrinet 矽光子聯盟成員，興櫃股。'},
+  '6223': {ticker:'6223',name:'旺矽',mapping:'AI伺服器V2',layer:'核心層',subcategory:'測試介面',role:'探針卡',customers:[],yuanta:'元大覆蓋',tp:null,huitai:true,cross:[],desc:'半導體測試介面廠商，探針卡 / 測試卡主供。輝台宴⭐ 點名。'},
+  '6515': {ticker:'6515',name:'穎崴',mapping:'AI伺服器V2',layer:'核心層',subcategory:'測試介面',role:'測試座 (萬金股)',customers:[],yuanta:'元大覆蓋',tp:null,huitai:true,cross:[],desc:'半導體測試座龍頭，輝台宴⭐ 點名，2026 萬金股之一。'},
+  '6187': {ticker:'6187',name:'萬潤',mapping:'AI伺服器V2',layer:'核心層',subcategory:'封裝設備',role:'Pick & Place / 點膠',customers:[],yuanta:'未評等',tp:null,huitai:true,cross:[{mapping:'FOPLP V1.1', role:'FOPLP 設備'}],desc:'半導體先進封裝設備廠，Pick & Place / 點膠 / 濕製程。輝台宴⭐ 點名。FOPLP 與 CoWoS 雙重供應。'},
+  '3131': {ticker:'3131',name:'弘塑',mapping:'AI伺服器V2',layer:'核心層',subcategory:'封裝設備',role:'清洗 / 蝕刻',customers:[],yuanta:'未評等',tp:null,huitai:true,cross:[{mapping:'FOPLP V1.1', role:'FOPLP 設備'}],desc:'半導體先進封裝設備廠，清洗 / 蝕刻 / 濕製程。輝台宴⭐ 點名。FOPLP 雙料設備。'},
+  '3583': {ticker:'3583',name:'辛耘',mapping:'AI伺服器V2',layer:'核心層',subcategory:'封裝設備',role:'半導體後段設備 / 清洗',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[{mapping:'FOPLP V1.1', role:'FOPLP 設備'}],desc:'半導體後段設備廠，FOPLP 與 CoWoS 相關供應。'},
+  '6438': {ticker:'6438',name:'迅得',mapping:'AI伺服器V2',layer:'核心層',subcategory:'封裝設備',role:'半導體 Stocker + PCB/載板設備',customers:['台系晶圓廠','載板廠'],yuanta:'符合預期',tp:null,huitai:false,cross:[{mapping:'FOPLP V1.1', role:'FOPLP/載板擴產受惠'},{mapping:'機器人V1', role:'半導體 AMHS'}],desc:'半導體 Stocker + PCB / 載板自動化設備廠。FOPLP / AI 伺服器 / 機器人三題材跨界。1Q26 達成率 98%。'},
+  '8046': {ticker:'8046',name:'南電',mapping:'AI伺服器V2',layer:'核心層',subcategory:'ABF 載板',role:'ABF 載板 6.6% 市占',customers:['Intel','AMD','NVIDIA'],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'ABF 載板廠，全球 6.6% 市占（台塑集團）。Intel / AMD / NVIDIA 客戶。T-Glass 缺料利多但 Ibiden ASP 下跌警示為對沖風險。'},
+  '3189': {ticker:'3189',name:'景碩',mapping:'AI伺服器V2',layer:'核心層',subcategory:'ABF 載板',role:'ABF 載板 5.8% 市占',customers:['Intel','AMD','NVIDIA'],yuanta:'買進',tp:486,huitai:false,cross:[],desc:'ABF 載板廠，全球 5.8% 市占。Intel / AMD / NVIDIA 客戶。元大買進 TP 486。'},
+  '2383': {ticker:'2383',name:'台光電',mapping:'AI伺服器V2',layer:'核心層',subcategory:'CCL',role:'CCL 龍頭 ASIC 客戶需求強勁',customers:['ASIC 客戶','PCB 廠'],yuanta:'買進',tp:4615,huitai:false,cross:[],desc:'銅箔基板 CCL 龍頭，ASIC 客戶需求強勁。2026 ASIC 客戶規格由 M7 拉升至 M8 或 M8+，衛星需求放量。元大買進 TP 4615。'},
+  '2368': {ticker:'2368',name:'金像電',mapping:'AI伺服器V2',layer:'核心層',subcategory:'PCB',role:'伺服器主板 PCB',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'伺服器主板 PCB 廠。'},
+  '3044': {ticker:'3044',name:'健鼎',mapping:'AI伺服器V2',layer:'核心層',subcategory:'PCB',role:'全球記憶體 + 伺服器 PCB 主供',customers:['各記憶體原廠','各 CSP'],yuanta:'買進',tp:570,huitai:false,cross:[],desc:'全球記憶體 PCB 主供應商 + 全球伺服器 PCB 主供應商雙料。1Q26 營收歷史新高，26 層以上高階板，越南廠 3Q26 試產。元大買進 TP 570。'},
+  '6274': {ticker:'6274',name:'台燿',mapping:'AI伺服器V2',layer:'核心層',subcategory:'CCL',role:'CCL ASIC 新客戶',customers:['ASIC 客戶'],yuanta:'元大覆蓋',tp:null,huitai:false,cross:[],desc:'銅箔基板 CCL 廠，ASIC 新客戶。泰國二期廠 2Q26 量產，PCIe 6.0 帶動 M7 / M8 升級。'},
+
+  // === 晶片設計 ===
+  '3443': {ticker:'3443',name:'創意',mapping:'AI伺服器V2',layer:'晶片設計',subcategory:'ASIC',role:'台積電子公司 ASIC',customers:['Google','AWS'],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'台積電子公司，ASIC 設計服務龍頭。客戶 Google / AWS。ASIC 鏈動能確認。'},
+  '3661': {ticker:'3661',name:'世芯-KY',mapping:'AI伺服器V2',layer:'晶片設計',subcategory:'ASIC',role:'AWS Trainium 主力',customers:['AWS'],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'ASIC 設計服務商，AWS Trainium 主力供應商。'},
+  '3035': {ticker:'3035',name:'智原',mapping:'AI伺服器V2',layer:'晶片設計',subcategory:'ASIC',role:'聯電子公司 ASIC',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'聯電子公司，ASIC 設計服務。'},
+  '5274': {ticker:'5274',name:'信驊',mapping:'AI伺服器V2',layer:'晶片設計',subcategory:'BMC',role:'BMC 全球龍頭 2025 股王',customers:['伺服器廠'],yuanta:'買進',tp:20000,huitai:false,cross:[],desc:'伺服器 BMC 晶片全球龍頭，2025 股王。LPX Rack LPU 受惠。元大買進 TP 20000。'},
+  '2454': {ticker:'2454',name:'聯發科',mapping:'AI伺服器V2',layer:'晶片設計',subcategory:'CPU/SoC',role:'Nvidia Grace CPU 合作 (RTX Spark)',customers:['Nvidia','Apple','Google'],yuanta:'買進',tp:3500,huitai:false,cross:[],desc:'IC 設計大廠。Nvidia Grace CPU (RTX Spark) 合作。AI PC 換機潮受惠，元澄 PIC 設計客戶。元大買進 TP 3500。'},
+
+  // === 傳輸層 ===
+  '3363': {ticker:'3363',name:'上詮',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'矽光子/CPO',role:'光纖陣列 + 台積電 COUPE',customers:['台積電'],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'光纖陣列 fiber array 廠商。台積電 COUPE 矽光子製程平台供應商。輝台宴⭐ 點名。'},
+  '3081': {ticker:'3081',name:'聯亞',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'矽光子/雷射',role:'外部雷射光源 + 磷化銦磊晶',customers:['CW Laser 客戶'],yuanta:'買進',tp:1350,huitai:true,cross:[],desc:'磷化銦磊晶廠，外部雷射光源 (CW Laser) 供應商。輝台宴⭐ 點名。1Q26 達成率 126%，光通訊比重 2026/27 達 78%/86%。元大買進 TP 1350。'},
+  '6451': {ticker:'6451',name:'訊芯-KY',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'矽光子/CPO',role:'CPO 先進封裝 / 光模組',customers:['NVIDIA'],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'CPO 先進封裝 + 光模組廠。輝台宴⭐ 點名，NVIDIA 供應商。'},
+  '4977': {ticker:'4977',name:'眾達-KY',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'光通訊',role:'光模組',customers:[],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'光模組廠商。輝台宴⭐ 點名。'},
+  '3163': {ticker:'3163',name:'波若威',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'光通訊',role:'光通訊元件',customers:[],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'光通訊元件廠商。輝台宴⭐ 點名。'},
+  '4979': {ticker:'4979',name:'華星光',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'光通訊',role:'光收發模組',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'光收發模組廠商。'},
+  '4991': {ticker:'4991',name:'環宇-KY',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'光通訊',role:'100G PD 800G 接收端 7 成市占',customers:['800G 模組廠'],yuanta:'買進',tp:425,huitai:false,cross:[],desc:'光通訊磷化銦廠商，100G PD / 800G 接收端 7 成市占。元大買進 TP 425。'},
+  '4971': {ticker:'4971',name:'IET-KY',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'光通訊',role:'MBE 製程 100G/200G/400G PD',customers:['1.6T/3.2T 模組廠'],yuanta:'買進',tp:650,huitai:false,cross:[],desc:'化合物半導體磊晶廠，MBE 製程 100/200/400G PD。光通訊比重 2026/27 達 52%/64%。元大買進 TP 650。'},
+  '2455': {ticker:'2455',name:'全新',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'光通訊',role:'高階 PD + CW Laser',customers:[],yuanta:'買進',tp:295,huitai:false,cross:[],desc:'化合物半導體磊晶廠，高階 PD + CW Laser 供應商。擴充 MOCVD 5 台因應 CPO 需求。元大買進 TP 295。'},
+  '8086': {ticker:'8086',name:'宏捷科',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'光通訊',role:'VCSEL + HAPS 無人機',customers:[],yuanta:'買進',tp:140,huitai:false,cross:[],desc:'化合物半導體代工廠，VCSEL 光通訊應用。HAPS 高空無人機基地台 2026 量產。元大買進 TP 140。'},
+  '3533': {ticker:'3533',name:'嘉澤',mapping:'AI伺服器V2',layer:'傳輸層',subcategory:'連接器',role:'高速連接器 CDFP/QSFP-DD',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'高速連接器廠商，CDFP / QSFP-DD 規格。'},
+
+  // === 系統層 ===
+  '2317': {ticker:'2317',name:'鴻海',mapping:'AI伺服器V2',layer:'系統層',subcategory:'ODM',role:'GB200/GB300 + AMD Helios ORW',customers:['NVIDIA','AMD','Oracle','Microsoft'],yuanta:'中性',tp:null,huitai:true,cross:[{mapping:'機器人V1', role:'人形機器人佈局'}],desc:'全球最大電子代工廠（鴻海集團）。GB200/GB300 整機櫃 + L10 GPU 基板 + AMD Helios 主力。CPO 全光交換機 3Q26 量產萬台。AI 伺服器市佔 40%。輝台宴⭐ 點名。'},
+  '2382': {ticker:'2382',name:'廣達',mapping:'AI伺服器V2',layer:'系統層',subcategory:'ODM',role:'Google/Meta/NVIDIA L10/L11',customers:['Google','Meta','NVIDIA'],yuanta:'買進',tp:null,huitai:true,cross:[{mapping:'機器人V1', role:'達明機器人 TM Robot'}],desc:'全球第二大 NB ODM，雲達 QCT 為 AI 伺服器旗艦品牌。GB300 出貨已超越 GB200，訂單能見度達 2027+。Google / Meta / NVIDIA 客戶。輝台宴⭐ 點名。元大買進 TP 340.5。'},
+  '3231': {ticker:'3231',name:'緯創',mapping:'AI伺服器V2',layer:'系統層',subcategory:'ODM',role:'NVIDIA AI 主板 + Dell',customers:['NVIDIA','Dell'],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'緯穎母公司，NB ODM 大廠跨 AI 運算主板。2025 營收 706 億美元（年增 116.2%），Networking 業務倍數成長。輝台宴⭐ 點名。'},
+  '2356': {ticker:'2356',name:'英業達',mapping:'AI伺服器V2',layer:'系統層',subcategory:'ODM',role:'AI 伺服器 ODM',customers:[],yuanta:'持有-超越同業',tp:49.6,huitai:false,cross:[],desc:'NB / AI 伺服器 ODM 第三梯隊。元大持有-超越同業 TP 49.6。'},
+  '2376': {ticker:'2376',name:'技嘉',mapping:'AI伺服器V2',layer:'系統層',subcategory:'品牌',role:'伺服器品牌 + ODM',customers:[],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'伺服器品牌 + ODM。輝台宴⭐ 點名。'},
+  '2357': {ticker:'2357',name:'華碩',mapping:'AI伺服器V2',layer:'系統層',subcategory:'品牌',role:'ESC 系列 + AI PC',customers:[],yuanta:'買進',tp:850,huitai:true,cross:[],desc:'主機板 + 伺服器品牌，自有 ESC 伺服器品牌。Vera CPU + AI PC 換機潮受惠。輝台宴⭐ 點名。元大買進 TP 850。'},
+  '4938': {ticker:'4938',name:'和碩',mapping:'AI伺服器V2',layer:'系統層',subcategory:'ODM',role:'伺服器同盟夥伴',customers:[],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'電子代工大廠（華碩集團），伺服器同盟夥伴。輝台宴⭐ 點名。'},
+  '8210': {ticker:'8210',name:'勤誠',mapping:'AI伺服器V2',layer:'系統層',subcategory:'機殼',role:'HGX/通用機殼 + AMD Helios ORW',customers:['Meta','AWS','HGX 客戶'],yuanta:'元大覆蓋',tp:null,huitai:false,cross:[],desc:'伺服器機殼大廠。Meta / AWS HGX 客戶。2026 HGX 出貨量年增 40% 至 9-10 萬台，中國 AI / ASIC 訂單農曆年後開標。'},
+  '2377': {ticker:'2377',name:'微星',mapping:'AI伺服器V2',layer:'系統層',subcategory:'品牌',role:'AI PC + 伺服器',customers:['Nvidia 消費客戶'],yuanta:'買進',tp:160,huitai:false,cross:[],desc:'消費電子品牌（顯卡 / 筆電 / AI PC）。Vera CPU + AI PC 換機潮受惠。元大買進 TP 160。'},
+  '3515': {ticker:'3515',name:'華擎',mapping:'AI伺服器V2',layer:'系統層',subcategory:'品牌',role:'AI PC + 伺服器主板',customers:['Nvidia 消費客戶'],yuanta:'買進',tp:280,huitai:false,cross:[],desc:'主機板 + 伺服器主板廠商。Vera CPU + AI PC 受惠。元大買進 TP 280。'},
+
+  // === 周邊層 ===
+  '3324': {ticker:'3324',name:'雙鴻',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'散熱',role:'液冷 CDU / 水冷板',customers:['NVIDIA','AMD MI'],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'液冷 CDU / 水冷板廠。NVIDIA AMD MI 客戶。2026 水冷比重由 30% 提升至 43%。輝台宴⭐ 點名。'},
+  '2421': {ticker:'2421',name:'建準',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'散熱',role:'DC 風扇',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'DC 風扇 / 散熱模組大廠。'},
+  '8996': {ticker:'8996',name:'高力',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'散熱',role:'熱交換器',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'熱交換器廠商。'},
+  '2308':{ticker:'2308',name:'台達電',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'電源',role:'高階高壓 PSU + 液冷散熱 + AIDC 電力',customers:['NVIDIA','CSP','Hyperscaler'],yuanta:'買進',tp:1860,huitai:true,cross:[{mapping:'電力鏈V1', role:'UPS / 800V DC / 模組化資料中心'}],desc:'電源龍頭跨 AI 周邊+AIDC 電力雙題材。800V DC 2027 量產。液冷 2024→2025 從 4000 萬升至 16 億美元。Hyperscaler 2026 CapEx +60% YoY。'},
+  '2301': {ticker:'2301',name:'光寶科',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'電源',role:'電源供應器',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'電源供應器大廠，跨 AI 伺服器周邊 + AIDC 電力雙題材。'},
+  '2345': {ticker:'2345',name:'智邦',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'網通',role:'800G/1.6T 交換器',customers:['NVIDIA','CSP'],yuanta:'未評等',tp:null,huitai:true,cross:[],desc:'高速網通設備龍頭，800G/1.6T 交換器。NVIDIA / CSP 客戶。CPO 全光交換機 3Q26 量產（鴻海 5/14 確認）。輝台宴⭐ 點名。'},
+  '3665': {ticker:'3665',name:'貿聯-KY',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'線材',role:'高密度機櫃線材 HPC power',customers:['NVIDIA','AMD'],yuanta:'買進',tp:2550,huitai:true,cross:[],desc:'高密度線材 + 連接器廠商，HPC power 線材主供。併購新富生光電佈局光通訊。HPC 業務 2026/27 年增 81%/40%。輝台宴⭐ 點名。元大買進 TP 2550。'},
+  '6584': {ticker:'6584',name:'南俊國際',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'滑軌',role:'通用型伺服器滑軌',customers:['M 客戶','CSP'],yuanta:'買進',tp:700,huitai:false,cross:[],desc:'通用型伺服器滑軌廠，CSP 客戶。1Q26 達成率 101%，越南廠低成本量產。伺服器比重由 57% 提升至 70%。元大買進 TP 700。'},
+  '3023': {ticker:'3023',name:'信邦',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'連接器',role:'連接器',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[{mapping:'機器人V1', role:'機器人線材'}],desc:'連接器廠商。'},
+  '3003': {ticker:'3003',name:'健和興',mapping:'AI伺服器V2',layer:'周邊層',subcategory:'連接器',role:'連接器',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'連接器廠商。'},
+
+  // === 記憶體 ===
+  '2344': {ticker:'2344',name:'華邦電',mapping:'AI伺服器V2',layer:'記憶體',subcategory:'DRAM',role:'Niche DRAM',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'Niche DRAM 廠商。2026/4 EPS 1.66 元，AI 鏈間接受惠。'},
+  '2408': {ticker:'2408',name:'南亞科',mapping:'AI伺服器V2',layer:'記憶體',subcategory:'DRAM',role:'DRAM',customers:['Micron'],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'DRAM 廠商（台塑集團），瑞峰半導體 RDL 服務客戶。DRAM 需求強勁，CSP 與記憶體廠談長期合約。'},
+  '6770': {ticker:'6770',name:'力積電',mapping:'AI伺服器V2',layer:'記憶體',subcategory:'DRAM 代工',role:'DRAM 晶圓代工',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'DRAM 晶圓代工 + 邏輯代工，AI 鏈間接受惠。'},
+  '8299': {ticker:'8299',name:'群聯',mapping:'AI伺服器V2',layer:'記憶體',subcategory:'NAND 模組',role:'NAND 模組廠 受惠 Micron/Kioxia 委外',customers:['Micron','Kioxia'],yuanta:'買進',tp:2400,huitai:false,cross:[],desc:'NAND 模組廠龍頭，Enterprise SSD 與 NAND 需求受 AI 帶動。受惠美光 / Kioxia 委外擴大。元大買進 TP 2400。'},
+
+  // === FOPLP V1.1 ===
+  '3481': {ticker:'3481',name:'群創',mapping:'FOPLPV1.1',layer:'終端面板廠',subcategory:'FOPLP 終端廠',role:'PMIC/RF FOPLP 700×700mm',customers:['客戶資訊待補'],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'面板大廠，跨足 FOPLP 700×700mm 量產，已滿單至 2026 上半年。V1 標 SpaceX 客戶但元大 PDF 原文未點名，信心已下修。'},
+  '6664': {ticker:'6664',name:'群翊',mapping:'FOPLPV1.1',layer:'FOPLP 設備',subcategory:'設備商',role:'塗佈 + 固化 全製程王者',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'FOPLP 全製程設備王者，工研院 V3.1 點名。'},
+  '3498': {ticker:'3498',name:'陽程',mapping:'FOPLPV1.1',layer:'FOPLP 設備',subcategory:'設備商',role:'FOPLP 塗佈',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'FOPLP 設備廠（曝光機 / Sputter）。'},
+  '6640': {ticker:'6640',name:'均華',mapping:'FOPLPV1.1',layer:'FOPLP 設備',subcategory:'設備商',role:'FOPLP 塗佈',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'FOPLP 設備廠（電鍍）。'},
+  '6937': {ticker:'6937',name:'天虹',mapping:'FOPLPV1.1',layer:'FOPLP 設備',subcategory:'設備商',role:'FOPLP PVD',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'FOPLP 化學品材料商。'},
+  '3560': {ticker:'3560',name:'亞智',mapping:'FOPLPV1.1',layer:'FOPLP 設備',subcategory:'設備商',role:'FOPLP 電鍍',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'FOPLP 設備廠（黃光 / 印刷）。'},
+  '3580': {ticker:'3580',name:'友威科技',mapping:'FOPLPV1.1',layer:'FOPLP 設備',subcategory:'設備商',role:'電漿表面處理 + 蝕刻',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'FOPLP 設備整合廠（鴻海集團，應材投資），跨 FOPLP + 鴻海集團 + 應材投資 + 台積電概念。'},
+
+  // === 機器人 V1 ===
+  '2049': {ticker:'2049',name:'上銀',mapping:'機器人V1',layer:'上游核心零組件',subcategory:'直線傳動',role:'滾珠螺桿 + 線性滑軌全球前三',customers:['工具機廠','半導體廠','機器人'],yuanta:'買進',tp:null,huitai:false,cross:[],desc:'滾珠螺桿 + 線性滑軌全球前三。半導體晶圓移載系統出貨持續增溫。1Q26 營收 +9% YoY 毛利率 31.9%，訂單能見度從 2-2.5 拉長至 4.5-5 個月，3 月底漲價 7-15%。元大買進。'},
+  '1590': {ticker:'1590',name:'亞德客-KY',mapping:'機器人V1',layer:'上游核心零組件',subcategory:'氣動元件',role:'氣動元件龍頭',customers:['電池','機械','工具機','半導體'],yuanta:'買進',tp:null,huitai:false,cross:[],desc:'氣動元件龍頭。1Q26 達成率 107%。2026/27 EPS 50.27/56.73 元。元大買進。'},
+  '4571': {ticker:'4571',name:'鈞興-KY',mapping:'機器人V1',layer:'上游核心零組件',subcategory:'諧波減速機',role:'機器人齒輪打入四大家族',customers:['工具機客戶','機器人四大家族'],yuanta:'看法正向',tp:null,huitai:false,cross:[],desc:'諧波減速機廠，打入四大家族手臂供應商。1Q26 達成率 95%，越南廠轉單效益。元大看法正向。'},
+  '7750': {ticker:'7750',name:'新代',mapping:'機器人V1',layer:'中游控制器',subcategory:'工具機控制器 + CNC',role:'中國本土平替 + 印度市場',customers:['中國工具機廠','印度市場'],yuanta:'買進',tp:null,huitai:false,cross:[],desc:'CNC 控制器廠商，與 NVIDIA / 盟立合作核心技術。'},
+  '5443': {ticker:'5443',name:'均豪',mapping:'機器人V1',layer:'中游系統整合',subcategory:'半導體 + 機器人自動化設備',role:'FOPLP Pick & Place + 自動化',customers:['半導體廠','FOPLP 廠'],yuanta:'未評等',tp:null,huitai:false,cross:[{mapping:'FOPLP V1.1', role:'FOPLP 設備'}],desc:'機器人自動化整合廠商。'},
+
+  // === AIDC 電力鏈 V1 ===
+  '1519':{ticker:'1519',name:'華城',mapping:'電力鏈V1',layer:'重電核心',subcategory:'變壓器',role:'台灣唯一 500KV 變壓器廠 AIDC 純度最高',customers:['美國 17 州電力公司','台電'],yuanta:'買進',tp:null,huitai:false,cross:[{mapping:'AI伺服器V2', role:'AIDC 直接供應商'}],desc:'AIDC 訂單累積 >120 億 2025 營收佔比 >10%。台灣唯一可生產 500KV 變壓器。台中廠 2027 Q2 產能翻倍。交期由 2 年拉長至 2.5-3 年。'},
+  '1504':{ticker:'1504',name:'東元',mapping:'電力鏈V1',layer:'重電核心',subcategory:'馬達+重電+Busway',role:'跨重電+馬達+資料中心',customers:['台電','鴻海','東南亞資料中心'],yuanta:'買進',tp:null,huitai:false,cross:[{mapping:'AI伺服器V2', role:'MDC 模組化資料中心與鴻海合作'},{mapping:'機器人V1', role:'工業馬達+無人機馬達'}],desc:'電力能源事業群佔比 19% → 24.5%。AIDC 2026 倍數成長、Busway +50%。與鴻海合作 MDC 模組化資料中心(初期 2-3MW)。東南亞每季 25 億訂單。'},
+  '1513':{ticker:'1513',name:'中興電',mapping:'電力鏈V1',layer:'重電核心',subcategory:'GIS 氣體絕緣開關',role:'GIS 龍頭 + 台積電合格供應商',customers:['台電','台積電','半導體廠'],yuanta:'買進',tp:200,huitai:false,cross:[{mapping:'AI伺服器V2', role:'台積電擴廠 GIS 設備受惠'}],desc:'GIS 市占 80% → 目標 90%。在手訂單 440 億能見度 2030。2025/12 取得台積電合格供應商(161kV GIS)。產能利用率 110%。'},
+  '1503':{ticker:'1503',name:'士電',mapping:'電力鏈V1',layer:'重電核心',subcategory:'變壓器+配電+儲能',role:'國內變壓器市佔 >70% + 表後儲能',customers:['台電','北美變壓器客戶'],yuanta:'未評等',tp:null,huitai:false,cross:[{mapping:'機器人V1', role:'工業馬達'}],desc:'國內變壓器市佔 >70%。訂單能見度延至 2028。北美客戶願吸收關稅(1.6%→21.6%)。表後儲能 80MW → 明年 300MW。'},
+  '1514':{ticker:'1514',name:'亞力',mapping:'電力鏈V1',layer:'重電核心',subcategory:'配電盤+電力設備',role:'重電商機 500 億受惠者',customers:['台電'],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'元大研報點名重電商機 500 億受惠者之一。台電配電盤供應商。待補逐字稿驗證。'},
+  '2301':{ticker:'2301',name:'光寶科',mapping:'電力鏈V1',layer:'資料中心電力',subcategory:'PSU 電源供應器',role:'伺服器電源大廠 跨 AI 周邊+電力鏈',customers:['Hyperscaler','伺服器廠'],yuanta:'元大覆蓋',tp:null,huitai:false,cross:[{mapping:'AI伺服器V2', role:'AI 伺服器電源'}],desc:'伺服器電源 PSU 大廠。AIDC 高壓直流轉換需求受惠。待補逐字稿。'},
+  '2457':{ticker:'2457',name:'飛宏',mapping:'電力鏈V1',layer:'資料中心電力',subcategory:'電源/充電',role:'電源廠 跨電力鏈',customers:[],yuanta:'未評等',tp:null,huitai:false,cross:[],desc:'電源廠。待補逐字稿驗證在 AIDC 角色。'},
+  '6412':{ticker:'6412',name:'群電',mapping:'電力鏈V1',layer:'資料中心電力',subcategory:'電源供應器',role:'電源廠 跨 AI 周邊+電力鏈',customers:['伺服器廠'],yuanta:'未評等',tp:null,huitai:false,cross:[{mapping:'AI伺服器V2', role:'伺服器電源'}],desc:'伺服器電源廠。跨 AI 伺服器周邊 + AIDC 電力鏈雙題材。待補逐字稿。'}
+};
+
+// ============================================
+// 上下游邏輯（按 layer + subcategory）
+// ============================================
+function getRelations(stock) {
+  const allInMapping = Object.values(STOCKS_DB).filter(s => s.mapping === stock.mapping);
+  let upstream = [];
+  let downstream = [];
+
+  // ====== AI 伺服器 V2 ======
+  if (stock.mapping === 'AI伺服器V2') {
+    const sub = stock.subcategory;
+    const layer = stock.layer;
+
+    if (sub === '晶圓代工') {
+      // 上游：設備外商不在 mapping 內
+      upstream = allInMapping.filter(s => s.subcategory === '封裝設備' || s.subcategory === '測試介面');
+      downstream = allInMapping.filter(s => s.layer === '晶片設計' || s.subcategory === '封測' || s.subcategory === '測試');
+    } else if (sub === '封測' || sub === '測試') {
+      upstream = allInMapping.filter(s => s.subcategory === '晶圓代工' || s.subcategory === 'ABF 載板' || s.subcategory === '測試介面');
+      downstream = allInMapping.filter(s => s.layer === '系統層');
+    } else if (sub === '測試介面') {
+      downstream = allInMapping.filter(s => s.subcategory === '封測' || s.subcategory === '測試' || s.subcategory === '晶圓代工');
+    } else if (sub === '封裝設備') {
+      downstream = allInMapping.filter(s => s.subcategory === '晶圓代工' || s.subcategory === '封測');
+    } else if (sub === 'ABF 載板') {
+      upstream = allInMapping.filter(s => s.subcategory === 'CCL');
+      downstream = allInMapping.filter(s => s.subcategory === '封測' || s.layer === '系統層');
+    } else if (sub === 'CCL') {
+      downstream = allInMapping.filter(s => s.subcategory === 'ABF 載板' || s.subcategory === 'PCB');
+    } else if (sub === 'PCB') {
+      upstream = allInMapping.filter(s => s.subcategory === 'CCL');
+      downstream = allInMapping.filter(s => s.layer === '系統層');
+    } else if (layer === '晶片設計') {
+      upstream = allInMapping.filter(s => s.subcategory === '晶圓代工' || s.subcategory === '封測');
+      downstream = allInMapping.filter(s => s.layer === '系統層');
+    } else if (layer === '傳輸層') {
+      // CPO / 光通訊 / 連接器：上游可能有晶圓代工（光晶片）
+      if (sub.includes('矽光子') || sub.includes('CPO')) {
+        upstream = allInMapping.filter(s => s.subcategory === '晶圓代工');
+      }
+      downstream = allInMapping.filter(s => s.layer === '系統層');
+    } else if (layer === '周邊層') {
+      // 散熱、電源、網通、線材、滑軌、連接器：上游原料不在 mapping
+      downstream = allInMapping.filter(s => s.layer === '系統層');
+    } else if (layer === '系統層') {
+      // ODM / 品牌 / 機殼：上游是所有上述層級，下游是終端客戶
+      upstream = allInMapping.filter(s =>
+        ['核心層','晶片設計','傳輸層','周邊層','記憶體'].includes(s.layer)
+      );
+      // downstream 由 customers 提供（外商）
+    } else if (layer === '記憶體') {
+      if (sub === 'NAND 模組') {
+        upstream = allInMapping.filter(s => s.layer === '記憶體' && s.subcategory !== 'NAND 模組');
+      }
+      downstream = allInMapping.filter(s => s.layer === '系統層');
+    }
+  }
+
+  // ====== FOPLP V1.1 ======
+  else if (stock.mapping === 'FOPLPV1.1') {
+    if (stock.layer === 'FOPLP 設備') {
+      downstream = allInMapping.filter(s => s.layer.includes('終端'));
+    } else if (stock.layer.includes('終端')) {
+      upstream = allInMapping.filter(s => s.layer === 'FOPLP 設備');
+    }
+  }
+
+  // ====== 機器人 V1 ======
+  else if (stock.mapping === '機器人V1') {
+    if (stock.layer.includes('上游')) {
+      downstream = allInMapping.filter(s => s.layer.includes('中游'));
+    } else if (stock.layer === '中游控制器') {
+      upstream = allInMapping.filter(s => s.layer.includes('上游'));
+      downstream = allInMapping.filter(s => s.layer === '中游系統整合');
+    } else if (stock.layer === '中游系統整合') {
+      upstream = allInMapping.filter(s =>
+        s.layer.includes('上游') || s.layer === '中游控制器'
+      );
+    }
+  }
+
+  // ====== AIDC 電力鏈 V1 ======
+  else if (stock.mapping === '電力鏈V1') {
+    if (stock.layer === '重電核心') {
+      // 上游：原料（不在 mapping 內，台廠少）
+      // 下游：資料中心電力（PSU/UPS 廠）+ 終端 AIDC、台電
+      downstream = allInMapping.filter(s => s.layer === '資料中心電力');
+    } else if (stock.layer === '資料中心電力') {
+      // 上游：重電核心（變壓器/GIS 提供高壓電源）
+      upstream = allInMapping.filter(s => s.layer === '重電核心');
+      // 下游：AI 伺服器（透過 cross 顯示）
+    }
+  }
+
+  // 同業：同 layer + 同 subcategory（不含自己）
+  const peers = allInMapping.filter(s =>
+    s.ticker !== stock.ticker && s.layer === stock.layer && s.subcategory === stock.subcategory
+  );
+
+  return { upstream, downstream, peers, cross: stock.cross || [] };
+}
+
+// 按 subcategory 分組
+function groupBySubcategory(stocks) {
+  const groups = {};
+  stocks.forEach(s => {
+    if (!groups[s.subcategory]) groups[s.subcategory] = [];
+    groups[s.subcategory].push(s);
+  });
+  return groups;
+}
+
+// ============================================
+// UI
+// ============================================
+let history = [];
+
+// ============================================
+// CONFIDENCE MAP (從 v3 CSV 生成)
+// 🟢 STRONG / 🟡 MEDIUM / ⚪ WEAK
+// ============================================
+const CONFIDENCE_MAP = {
+  '1503': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '1590': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '1597': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '2049': { emoji: '🟢', level: 'STRONG', sources: '上銀 11/11 + 5/8', signals: '1Q26 營收 +9% YoY 毛利率 31.9% (+2.1pp)；訂單能見度從 2-2.5 個月拉長至 4.5-5 個月；3 月底漲價 7-15%；機器人佔比 9-10%→12%；半導體設備需求中台日皆熱' },
+  '2059': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2301': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '2308': { emoji: '🟢', level: 'STRONG', sources: '台達電 2/26 + 4/30（跨題材：AI 周邊+電力鏈）', signals: 'Hyperscaler 2026 CapEx +60% YoY；AWS AI 季增 170%；800V DC 2027 量產；液冷 2024→2025 從 4000 萬升至 16 億美元；AI 系統 2025 僅佔 9%（成長空間大）；跨 AI 周邊+電力鏈雙題材' },
+  '2317': { emoji: '🟢', level: 'STRONG', sources: '鴻海 3/16 + 5/14', signals: 'AI 伺服器市佔 40% 且續升；AI 占營收 1Q26 50%+；CPO 全光交換機 3Q26 量產萬台；ASIC Chiplet 2H26 Tape-out；2026 機櫃倍數成長' },
+  '2330': { emoji: '🟢', level: 'STRONG', sources: '台積電 1/15 + 4/16 + 5/26 UBS', signals: '2026 全年成長 >30%；CapEx 520-560 億美元；AI 加速器 CAGR 50%+；HPC 從 58% → 1Q26 61%；先進封裝戰略重要但財務不顯著；2027 N3 部分設備折舊' },
+  '2344': { emoji: '⚪', level: 'WEAK', sources: '緯穎/廣達提記憶體缺貨漲價', signals: '記憶體鏈需求面確認；General Server 記憶體成本 30%；Niche DRAM 跟 AI 主鏈關聯較弱但題材氛圍佳' },
+  '2345': { emoji: '🟡', level: 'MEDIUM', sources: '鴻海 5/14 直接提 CPO + 800G', signals: '鴻海 CPO 全光交換機 3Q26 量產萬台；800G+ 倍數成長；輝台宴⭐' },
+  '2356': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2357': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2360': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '2368': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '2376': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '2377': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2382': { emoji: '🟢', level: 'STRONG', sources: '廣達 5/14', signals: 'AI 伺服器佔伺服器營收 75%+；GB300 出貨已超越 GB200；訂單能見度達 2027+；2026 AI 三位數百分比成長；下半年部分專案轉 consignment' },
+  '2383': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2408': { emoji: '🟡', level: 'MEDIUM', sources: '緯穎/廣達/台積電提記憶體', signals: 'DRAM 需求強勁；CSP 與記憶體廠談長期合約；瑞峰半導體 RDL 服務客戶' },
+  '2421': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '2449': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2454': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2455': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '2457': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '2464': { emoji: '🟢', level: 'STRONG', sources: '盟立 12/22', signals: '2025 上市以來首虧 -0.58 元；2026 Q1 轉虧為盈；半導體自動化 57%→2026 超 60%；人形機器人/機器狗 2026 Q1 出貨；跨 AI 伺服器/FOPLP/機器人三題材；NVIDIA + 新代合作' },
+  '3003': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '3017': { emoji: '🟢', level: 'STRONG', sources: '奇鋐 5/14', signals: '1Q26 營收 +110% YoY；液冷模組產能 5 倍擴張至月 100 萬台；2027 ASIC > GPU 客戶；ASIC 毛利率 > NVIDIA；Rubin 金鍍層已外包對奇鋐影響有限' },
+  '3023': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '3035': { emoji: '⚪', level: 'WEAK', sources: '同 3443 + 3661 但元大未覆蓋', signals: '聯電子公司 ASIC，客戶結構待補；ASIC 鏈氛圍正面' },
+  '3037': { emoji: '🟢', level: 'STRONG', sources: '欣興 9/2 + 2/25（含風險）', signals: 'AI 載板比重從個位數→30-40%；光復廠稼動率 80%；T-Glass 缺料至 2026H2；⚠️ Ibiden 警告 AI 載板 ASP 下跌，台廠同業亦面臨壓力；2024 毛利率 14.1% 大幅下滑' },
+  '3044': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '3081': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '3105': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3131': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3163': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3189': { emoji: '🟢', level: 'STRONG', sources: 'T-Glass 缺料 + 元大買進已覆蓋', signals: 'ABF 載板 5.8% 市佔；T-Glass 議題與 8046 同步；元大已 TP 486' },
+  '3231': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3324': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3363': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3443': { emoji: '🟡', level: 'MEDIUM', sources: '鴻海 ASIC Chiplet 2H26 + 奇鋐 ASIC > GPU 2027', signals: 'ASIC 設計鏈動能確認；台積電子公司 ASIC；客戶 Google/AWS' },
+  '3481': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3498': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3515': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '3533': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '3560': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3580': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3583': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '3596': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '3653': { emoji: '🟢', level: 'STRONG', sources: '健策 11/28（等 1Q26 釐清元大下修）', signals: 'GPU 水冷模組 2025 才剛開始出貨 +48%；均熱片 +82%；Micro Channel 突破 7000W 晶片 70°C；2026 樂觀；⚠️ 元大 6/2 下修 TP 5757→4270 原因待 1Q26 法說釐清，TIM2 補件 ≠ Rubin 金鍍層' },
+  '3661': { emoji: '🟡', level: 'MEDIUM', sources: '同 3443，世芯-KY 為 AWS Trainium 主力', signals: 'ASIC 鏈強訊號；AWS Trainium 主供' },
+  '3665': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '3680': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '3711': { emoji: '🟢', level: 'STRONG', sources: '日月光 12/3 UBS + 2/5 + 4/29', signals: '2025 LEAP 翻倍至 16 億美元；2026 LEAP 再翻倍至 32-35 億美元；VI-PACK 技術家族（Focus / Focus Bridge / CPO）；FOPLP 310x310mm + 620x620mm 路線；台積電 OSAT 外溢訂單承接者' },
+  '4571': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '4576': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '4938': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '4971': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '4977': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '4979': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '4991': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '5274': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '5443': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '6187': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '6213': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '6223': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '6239': { emoji: '🟢', level: 'STRONG', sources: '日月光 LEAP 翻倍驗證 OSAT 賽道大', signals: 'FOPLP 終端封測；日月光 LEAP 2026 翻倍至 32-35 億美元顯示 OSAT 整體賽道擴張；力成 FOPLP 投資 10 億美元擴產空間' },
+  '6274': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '6412': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '6438': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '6451': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '6515': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '6584': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '6640': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '6664': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '6669': { emoji: '🟢', level: 'STRONG', sources: '緯穎 2/26（已有深度檔）', signals: 'CSP 三大 Level 11 客戶；AI 50%（2026 將超 50%）；2026 ASIC > GPU；1H 動能弱、2H 強；記憶體漲 4 倍但 OP 金額不變；Consignment 下一代出貨前討論' },
+  '6683': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+  '6770': { emoji: '⚪', level: 'WEAK', sources: '記憶體鏈間接受惠', signals: 'DRAM 晶圓代工，AI 鏈間接受惠；無自家法說會' },
+  '6805': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '6937': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '7415': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '7750': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '7873': { emoji: '🟡', level: 'MEDIUM', sources: '', signals: '' },
+  '8046': { emoji: '🟡', level: 'MEDIUM', sources: 'T-Glass 缺料 + ABF 三雄', signals: 'ABF 載板 6.6% 市佔；T-Glass 缺料至 2026H2 對載板廠有利可能漲價；Ibiden ASP 下跌警示為負面對沖' },
+  '8086': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '8210': { emoji: '🟢', level: 'STRONG', sources: '', signals: '' },
+  '8299': { emoji: '🟢', level: 'STRONG', sources: '緯穎/廣達/鴻海法說皆提記憶體漲', signals: '緯穎自承記憶體漲 4 倍；鴻海/廣達確認 CSP 與記憶體廠談長期合約；NAND 模組受惠 Micron/Kioxia 委外' },
+  '8996': { emoji: '⚪', level: 'WEAK', sources: '', signals: '' },
+
+  // === AIDC 電力鏈 V1 ===
+  '1519': { emoji: '🟢', level: 'STRONG', sources: '華城 12/12', signals: 'AIDC 訂單累積 >120 億 2025 營收佔比 >10%；台中廠 2027 Q2 產能翻倍；推 525KV 130MVA GSU；交期 2 年拉長至 2.5-3 年(歐洲>4年)；2026 EPS 20.6 PE 51 最高' },
+  '1504': { emoji: '🟢', level: 'STRONG', sources: '東元 3/12 + 5/14', signals: 'AIDC 2026 倍數成長佔電力能源三成+；Busway 匯流排營收 +50%；與鴻海合作 MDC 模組化資料中心(初期 2-3MW)；美國變壓器訂單 1-4 月倍增；東南亞每季 25 億訂單；2026 EPS 3.1' },
+  '1513': { emoji: '🟢', level: 'STRONG', sources: '中興電 10/23 + 4/23 + 元大研報', signals: '2025 營收 275 億 EPS 8.07 DPS 6 元創高；在手訂單 440 億能見度 2030；2025/12 取得台積電合格供應商(161kV GIS)貢獻 2026/27 年 6 億/12 億；越南代理商因 Siemens 無法供貨轉向中興；IDC 機房+AI 運算中心多元成長' },
+  '1503': { emoji: '🟢', level: 'STRONG', sources: '士電 8/27', signals: '2025 上半年營收 191 億 EPS 4 元；訂單能見度延至 2028；北美變壓器客戶願吸收關稅(1.6%→21.6%)；表後儲能接單 80MW 明年達 300MW；2026 EPS 9.7 PE 23.4' },
+  '1514': { emoji: '🟡', level: 'MEDIUM', sources: '中興電元大研報點名', signals: '元大研報列為重電商機 500 億受惠者之一；待補逐字稿' },
+  '2301': { emoji: '🟡', level: 'MEDIUM', sources: '跨 AI 周邊 + 電力鏈', signals: '跨 AI 伺服器周邊 + AIDC 電力雙 mapping；待補逐字稿驗證 PSU 在 AIDC 高壓直流的角色' },
+  '6412': { emoji: '⚪', level: 'WEAK', sources: '', signals: '跨 AI 伺服器周邊 + AIDC 電力 待補逐字稿' }
+};
+
+// ============================================
+// FINANCIALS (FinMind 月營收 + 季度損益)
+// ============================================
+const FINANCIALS = window.PULSE_FINANCIALS;
+
+
+// 取信心徽章 HTML
+function confidenceBadge(ticker, size = 'sm') {
+  const c = CONFIDENCE_MAP[ticker];
+  if (!c) return '';
+  const fontSize = size === 'lg' ? 'text-base' : 'text-[11px]';
+  return `<span class="${fontSize}" title="${c.level}">${c.emoji}</span>`;
+}
+
+// 衛星節點（中等大小）
+function satelliteNode(s, colorClass = 'bg-white') {
+  const huitai = s.huitai ? '<span class="text-amber-500 text-sm">⭐</span>' : '';
+  const c = CONFIDENCE_MAP[s.ticker];
+  const confEmoji = c ? `<span class="text-sm shrink-0" title="${c.level}${c.sources ? ' · ' + c.sources : ''}">${c.emoji}</span>` : '';
+
+  return `
+    <button data-ticker="${s.ticker}" class="satellite-node node-card ${colorClass} border border-slate-200/60 rounded-xl px-3 py-3 text-left w-full">
+      <div class="flex items-center gap-2 mb-1.5">
+        ${confEmoji}
+        <span class="font-bold text-lg truncate flex-1">${s.name}</span>
+        ${huitai}
+      </div>
+      <div class="text-[10px] text-slate-600 leading-snug line-clamp-2">${s.role || s.subcategory}</div>
+    </button>
+  `;
+}
+
+// 終端客戶小節點（不是台股）
+function customerNode(name) {
+  return `
+    <div class="bg-sand border border-slate-200/40 rounded-lg px-3 py-2 text-center node-card customer-node">
+      <div class="text-xs font-semibold text-slate-700">${name}</div>
+      <div class="text-[9px] text-slate-500 mt-0.5">終端客戶</div>
+    </div>
+  `;
+}
+
+// 跨題材節點
+function crossNode(c) {
+  return `
+    <div class="bg-lilac border border-slate-200/40 rounded-xl p-3 node-card cross-node">
+      <div class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">${c.mapping}</div>
+      <div class="text-xs font-medium text-slate-700 leading-snug">${c.role}</div>
+    </div>
+  `;
+}
+
+// 主渲染
+function render(ticker) {
+  const stock = STOCKS_DB[ticker];
+  if (!stock) return;
+
+  if (history[history.length - 1] !== ticker) history.push(ticker);
+
+  // 麵包屑
+  document.getElementById('breadcrumb').innerHTML = `
+    <span class="text-slate-400">${stock.mapping}</span>
+    ${history.slice(-5).map((t, i, arr) => {
+      const s = STOCKS_DB[t];
+      const isLast = i === arr.length - 1;
+      return `
+        <span class="text-slate-300">›</span>
+        ${isLast
+          ? `<span class="text-navy font-medium">${t} ${s.name}</span>`
+          : `<button data-jump="${t}" class="jump-link text-slate-500 hover:text-navy">${t} ${s.name}</button>`
+        }
+      `;
+    }).join('')}
+  `;
+
+  const rel = getRelations(stock);
+
+  // 中心節點（大）
+  const centerHuitai = stock.huitai ? '<span class="ml-2 text-amber-500 text-base">⭐ 輝台宴點名</span>' : '';
+  const centerYuanta = (stock.yuanta && stock.yuanta !== '未評等') ? `
+    <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200/60">
+      <span class="text-[10px] tracking-widest uppercase text-slate-500">元大</span>
+      <span class="text-sm font-semibold text-amber-700">${stock.yuanta}</span>
+      ${stock.tp ? `<span class="text-xs text-slate-600">· TP ${stock.tp}</span>` : ''}
+    </div>` : '';
+
+  // 取信心資訊
+  const conf = CONFIDENCE_MAP[stock.ticker];
+  const confBlock = conf ? `
+    <div class="flex items-center gap-2 mt-2">
+      <span class="text-2xl">${conf.emoji}</span>
+      <span class="text-xs font-semibold text-slate-600">${conf.level}</span>
+      ${conf.sources ? `<span class="text-[10px] text-slate-500">· ${conf.sources}</span>` : ''}
+    </div>
+    ${conf.signals ? `<div class="mt-2 p-3 rounded-lg bg-amber-50/60 border border-amber-100">
+      <div class="text-[10px] tracking-widest uppercase text-amber-700 mb-1 font-semibold">逐字稿關鍵訊號</div>
+      <div class="text-[11px] text-slate-700 leading-relaxed">${conf.signals}</div>
+    </div>` : ''}
+  ` : '';
+
+  // mapping 顯示名稱
+  const mappingDisplay = {
+    'AI伺服器V2': 'AI 伺服器',
+    'FOPLPV1.1': 'FOPLP / 玻璃基板',
+    'FOPLP V1.1': 'FOPLP / 玻璃基板',
+    '機器人V1': '機器人 / 自動化',
+    '電力鏈V1': 'AIDC 電力鏈',
+  };
+  const themeLabel = mappingDisplay[stock.mapping] || stock.mapping;
+
+  document.getElementById('center-zone').innerHTML = `
+    <div class="central-node node-card central rounded-2xl p-6 fade-up" style="min-width:340px; max-width:480px;">
+      <div class="flex items-center justify-between mb-3 pb-2 border-b border-stone-200">
+        <span class="text-[10px] tracking-widest uppercase text-stone-600 font-bold">${themeLabel}</span>
+        <span class="text-[10px] tracking-widest uppercase text-stone-500">${stock.layer}</span>
+      </div>
+      <div class="flex items-baseline justify-between mb-2">
+        <div class="flex items-baseline gap-2">
+          <span class="text-xs text-stone-500 font-mono">${stock.ticker}</span>
+          <h2 class="text-3xl font-bold leading-tight">${stock.name}</h2>
+        </div>
+        ${centerHuitai}
+      </div>
+      <div class="text-xs font-medium text-stone-600 mb-2">${stock.subcategory}</div>
+      ${stock.role ? `<p class="text-sm text-stone-700 leading-snug mb-2">${stock.role}</p>` : ''}
+      ${stock.desc ? `<p class="text-xs text-stone-600 leading-relaxed bg-stone-100/70 p-3 rounded-lg mt-2">${stock.desc}</p>` : ''}
+      ${confBlock}
+      ${centerYuanta}
+      <button onclick="openCentralDetail('${stock.ticker}')" class="mt-4 w-full bg-stone-800 hover:bg-stone-900 text-white text-sm font-medium py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+        <span>📋</span><span>查看詳細資訊</span>
+      </button>
+    </div>
+  `;
+
+  // 高亮對應題材 chip
+  highlightThemeChip(stock.mapping);
+
+  // 上游區（按 subcategory 分組，最多 6 組，每組最多 4 檔）
+  const upstreamZone = document.getElementById('upstream-zone');
+  if (rel.upstream.length > 0) {
+    const grouped = groupBySubcategory(rel.upstream);
+    // 重要性排序：有評等的優先
+    const subEntries = Object.entries(grouped).map(([sub, list]) => {
+      list.sort((a, b) => {
+        const aImp = (a.yuanta && a.yuanta !== '未評等' ? 2 : 0) + (a.huitai ? 1 : 0);
+        const bImp = (b.yuanta && b.yuanta !== '未評等' ? 2 : 0) + (b.huitai ? 1 : 0);
+        return bImp - aImp;
+      });
+      return [sub, list];
+    });
+
+    upstreamZone.innerHTML = `
+      <div class="bg-sky-soft rounded-2xl p-4 fade-up">
+        <div class="flex items-center justify-between mb-3">
+          <div class="group-label">↑ 上游 — 它的供應商</div>
+          <span class="text-[10px] text-slate-400">${rel.upstream.length} 檔</span>
+        </div>
+        <div class="grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          ${subEntries.slice(0, 8).map(([sub, list]) => `
+            <div>
+              <div class="text-[10px] font-semibold text-slate-600 mb-1.5">${sub} <span class="text-slate-400 font-normal">· ${list.length}</span></div>
+              <div class="grid gap-1.5" style="grid-template-columns: 1fr 1fr;">
+                ${list.slice(0, 4).map(s => satelliteNode(s, 'bg-white')).join('')}
+              </div>
+              ${list.length > 4 ? `<div class="text-[10px] text-slate-400 mt-1">+${list.length - 4} 檔</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } else {
+    upstreamZone.innerHTML = `
+      <div class="bg-slate-50 rounded-2xl p-4 fade-up text-center">
+        <div class="group-label mb-1">↑ 上游</div>
+        <div class="text-xs text-slate-400">${stock.layer}/${stock.subcategory} 的上游在外商或原料端，目前 mapping 內無對應</div>
+      </div>
+    `;
+  }
+
+  // 同業區（左）
+  const peersZone = document.getElementById('peers-zone');
+  if (rel.peers.length > 0) {
+    peersZone.innerHTML = `
+      <div class="bg-mint-soft rounded-2xl p-3 fade-up h-full">
+        <div class="flex items-center justify-between mb-2">
+          <div class="group-label">← 同業</div>
+          <span class="text-[10px] text-slate-400">${rel.peers.length}</span>
+        </div>
+        <div class="space-y-2">
+          ${rel.peers.slice(0, 6).map(s => satelliteNode(s, 'bg-white')).join('')}
+          ${rel.peers.length > 6 ? `<div class="text-[10px] text-slate-400 text-center">+${rel.peers.length - 6} 檔</div>` : ''}
+        </div>
+      </div>
+    `;
+  } else {
+    peersZone.innerHTML = `
+      <div class="bg-slate-50 rounded-2xl p-3 fade-up text-center h-full flex flex-col justify-center">
+        <div class="group-label mb-1">← 同業</div>
+        <div class="text-[10px] text-slate-400">本 layer/subcategory<br>暫無其他台廠</div>
+      </div>
+    `;
+  }
+
+  // 跨題材區（右）
+  const crossZone = document.getElementById('cross-zone');
+  if (rel.cross.length > 0) {
+    crossZone.innerHTML = `
+      <div class="bg-lilac-soft rounded-2xl p-3 fade-up h-full">
+        <div class="flex items-center justify-between mb-2">
+          <div class="group-label">→ 跨題材</div>
+          <span class="text-[10px] text-slate-400">${rel.cross.length}</span>
+        </div>
+        <div class="space-y-2">
+          ${rel.cross.map(c => crossNode(c)).join('')}
+        </div>
+      </div>
+    `;
+  } else {
+    crossZone.innerHTML = `
+      <div class="bg-slate-50 rounded-2xl p-3 fade-up text-center h-full flex flex-col justify-center">
+        <div class="group-label mb-1">→ 跨題材</div>
+        <div class="text-[10px] text-slate-400">目前無跨 mapping 關聯</div>
+      </div>
+    `;
+  }
+
+  // 下游區（台廠 + 終端客戶）
+  const downstreamZone = document.getElementById('downstream-zone');
+  const hasDownstream = rel.downstream.length > 0;
+  const hasCustomers = stock.customers && stock.customers.length > 0 && stock.customers[0] !== '客戶資訊待補';
+
+  if (hasDownstream || hasCustomers) {
+    const groupedDown = hasDownstream ? groupBySubcategory(rel.downstream) : {};
+    const subEntriesDown = Object.entries(groupedDown).map(([sub, list]) => {
+      list.sort((a, b) => {
+        const aImp = (a.yuanta && a.yuanta !== '未評等' ? 2 : 0) + (a.huitai ? 1 : 0);
+        const bImp = (b.yuanta && b.yuanta !== '未評等' ? 2 : 0) + (b.huitai ? 1 : 0);
+        return bImp - aImp;
+      });
+      return [sub, list];
+    });
+
+    downstreamZone.innerHTML = `
+      <div class="bg-cream-soft rounded-2xl p-4 fade-up">
+        <div class="flex items-center justify-between mb-3">
+          <div class="group-label">↓ 下游 — 它的客戶</div>
+          ${hasDownstream ? `<span class="text-[10px] text-slate-400">${rel.downstream.length} 台廠 ${hasCustomers ? `+ ${stock.customers.length} 外商` : ''}</span>` : `<span class="text-[10px] text-slate-400">${stock.customers.length} 外商客戶</span>`}
+        </div>
+        ${hasDownstream ? `
+          <div class="grid gap-3 mb-3" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            ${subEntriesDown.slice(0, 8).map(([sub, list]) => `
+              <div>
+                <div class="text-[10px] font-semibold text-slate-600 mb-1.5">${sub} <span class="text-slate-400 font-normal">· ${list.length}</span></div>
+                <div class="grid gap-1.5" style="grid-template-columns: 1fr 1fr;">
+                  ${list.slice(0, 4).map(s => satelliteNode(s, 'bg-white')).join('')}
+                </div>
+                ${list.length > 4 ? `<div class="text-[10px] text-slate-400 mt-1">+${list.length - 4} 檔</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${hasCustomers ? `
+          <div>
+            <div class="text-[10px] font-semibold text-slate-600 mb-1.5">終端客戶（外商）</div>
+            <div class="flex flex-wrap gap-2">
+              ${stock.customers.map(c => customerNode(c)).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } else {
+    downstreamZone.innerHTML = `
+      <div class="bg-slate-50 rounded-2xl p-4 fade-up text-center">
+        <div class="group-label mb-1">↓ 下游</div>
+        <div class="text-xs text-slate-400">下游客戶資料待補</div>
+      </div>
+    `;
+  }
+
+  // 綁定點擊
+  setTimeout(() => {
+    document.querySelectorAll('.satellite-node').forEach(n => {
+      n.onclick = (e) => {
+        e.preventDefault();
+        render(n.dataset.ticker);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+    });
+    document.querySelectorAll('.jump-link').forEach(link => {
+      link.onclick = (e) => {
+        e.preventDefault();
+        const target = link.dataset.jump;
+        const idx = history.indexOf(target);
+        if (idx >= 0) history = history.slice(0, idx);
+        render(target);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+    });
+    drawConnections();
+  }, 30);
+}
+
+// ============================================
+// SVG 連接線
+// ============================================
+function drawConnections() {
+  const svg = document.getElementById('connection-svg');
+  const wrapper = document.getElementById('mind-map-wrapper');
+  if (!svg || !wrapper) return;
+
+  // 設定 SVG 尺寸
+  const wRect = wrapper.getBoundingClientRect();
+  svg.setAttribute('width', wRect.width);
+  svg.setAttribute('height', wRect.height);
+  svg.setAttribute('viewBox', `0 0 ${wRect.width} ${wRect.height}`);
+  svg.innerHTML = '';
+
+  const center = document.querySelector('.central-node');
+  if (!center) return;
+  const cRect = center.getBoundingClientRect();
+  const cx = cRect.left - wRect.left + cRect.width / 2;
+  const cy = cRect.top - wRect.top + cRect.height / 2;
+
+  // 上游連線
+  const upZone = document.getElementById('upstream-zone');
+  if (upZone) {
+    const upRect = upZone.getBoundingClientRect();
+    // 從上游區的中下方連到中心上方
+    const upX = upRect.left - wRect.left + upRect.width / 2;
+    const upY = upRect.bottom - wRect.top - 6;
+    const topY = cRect.top - wRect.top + 4;
+    addLine(svg, upX, upY, cx, topY, 'stroke-upstream');
+  }
+
+  // 下游連線
+  const downZone = document.getElementById('downstream-zone');
+  if (downZone) {
+    const downRect = downZone.getBoundingClientRect();
+    const downX = downRect.left - wRect.left + downRect.width / 2;
+    const downY = downRect.top - wRect.top + 6;
+    const bottomY = cRect.bottom - wRect.top - 4;
+    addLine(svg, cx, bottomY, downX, downY, 'stroke-downstream');
+  }
+
+  // 同業連線
+  const peersZone = document.getElementById('peers-zone');
+  if (peersZone) {
+    const pRect = peersZone.getBoundingClientRect();
+    const pX = pRect.right - wRect.left - 4;
+    const pY = pRect.top - wRect.top + pRect.height / 2;
+    const leftX = cRect.left - wRect.left + 4;
+    addLine(svg, pX, pY, leftX, cy, 'stroke-peer');
+  }
+
+  // 跨題材連線
+  const crossZ = document.getElementById('cross-zone');
+  if (crossZ) {
+    const crRect = crossZ.getBoundingClientRect();
+    const crX = crRect.left - wRect.left + 4;
+    const crY = crRect.top - wRect.top + crRect.height / 2;
+    const rightX = cRect.right - wRect.left - 4;
+    addLine(svg, rightX, cy, crX, crY, 'stroke-cross');
+  }
+}
+
+function addLine(svg, x1, y1, x2, y2, colorClass) {
+  // 曲線：用三次貝茲，往中心方向收斂
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  // 控制點：在 mid 兩側偏移
+  let c1x, c1y, c2x, c2y;
+  if (Math.abs(dy) > Math.abs(dx)) {
+    // 垂直方向為主
+    c1x = x1;
+    c1y = midY;
+    c2x = x2;
+    c2y = midY;
+  } else {
+    c1x = midX;
+    c1y = y1;
+    c2x = midX;
+    c2y = y2;
+  }
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke-width', '1.5');
+  path.setAttribute('class', `${colorClass} line-animated`);
+  path.setAttribute('opacity', '0.55');
+  svg.appendChild(path);
+}
+
+// 建議列表
+function renderSuggestions() {
+  const suggested = ['6669','3017','2464','6805','2330','7415','3653','3037','6239','2059','3661','2317','3711','5274','2454','2308','1519','1513','1504','2049'];
+  document.getElementById('suggestions').innerHTML = suggested.map(t => {
+    const s = STOCKS_DB[t];
+    if (!s) return '';
+    return `
+      <button data-ticker="${t}" class="suggestion-chip shrink-0 text-xs bg-white/80 border border-slate-200/60 px-3 py-2 rounded-full hover:bg-white">
+        <span class="font-mono text-slate-500">${s.ticker}</span>
+        <span class="font-medium ml-1">${s.name}</span>
+      </button>
+    `;
+  }).join('');
+  document.querySelectorAll('#suggestions .suggestion-chip').forEach(c => {
+    c.onclick = () => {
+      history = [];
+      render(c.dataset.ticker);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
+}
+
+// resize 重繪
+window.addEventListener('resize', () => {
+  setTimeout(drawConnections, 50);
+});
+
+// 中心個股「詳細資訊」popup
+// 共用：渲染財務動能區塊（給 detail popup 用）
+function renderFinancialBlock(ticker) {
+  const fin = (typeof FINANCIALS !== 'undefined') ? FINANCIALS[ticker] : null;
+  if (!fin || !fin.summary) {
+    return `<div class="bg-stone-100/60 rounded-xl p-3">
+      <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-1">💰 財務動能</div>
+      <p class="text-sm text-stone-500 italic">FinMind 無 ${ticker} 資料（可能為興櫃股或新上市）</p>
+    </div>`;
+  }
+  const s = fin.summary;
+
+  // 台股漲紅跌綠
+  const yColor = (v) => v == null ? 'text-stone-400' : (v > 0 ? 'text-rose-600' : v < 0 ? 'text-emerald-600' : 'text-stone-500');
+  const yArrow = (v) => v == null ? '·' : (v > 0 ? '▲' : v < 0 ? '▼' : '·');
+  const yFmt = (v, suffix = '%') => v == null ? '—' : `${v > 0 ? '+' : ''}${v}${suffix}`;
+  const num = (v) => v == null ? '—' : v.toLocaleString();
+
+  // 熱度標籤
+  let momentumBadge = '';
+  if (s.consecutive_growth_months >= 12) momentumBadge = '<span class="text-xs bg-rose-50 text-rose-700 px-2 py-1 rounded-full">🔥 連續 12 月+</span>';
+  else if (s.consecutive_growth_months >= 6) momentumBadge = '<span class="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">📈 連續 6 月+</span>';
+  else if ((s.consecutive_growth_months || 0) <= 0 && s.latest_month_yoy != null && s.latest_month_yoy < 0) momentumBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">📉 衰退中</span>';
+
+  // 月營收 sparkline (12 個月 YoY)
+  let monthlySpark = '';
+  if (fin.monthly && fin.monthly.length > 0) {
+    const w = 280, h = 50;
+    const yoys = fin.monthly.map(m => m.yoy || 0);
+    const maxY = Math.max(...yoys, 30);
+    const minY = Math.min(...yoys, -10);
+    const range = maxY - minY || 1;
+    const barW = w / fin.monthly.length;
+    const bars = fin.monthly.map((m, i) => {
+      const y0 = h - ((0 - minY) / range * h);
+      const y1 = h - ((m.yoy - minY) / range * h);
+      const color = (m.yoy || 0) > 0 ? '#e11d48' : '#047857';
+      const top = Math.min(y0, y1);
+      const height = Math.abs(y1 - y0);
+      return `<rect x="${i * barW + 1}" y="${top}" width="${barW - 2}" height="${height}" fill="${color}" opacity="0.7"><title>${m.d}: YoY ${yFmt(m.yoy)}</title></rect>`;
+    }).join('');
+    monthlySpark = `<svg viewBox="0 0 ${w} ${h}" class="w-full" style="height: 50px;">
+      <line x1="0" y1="${h - ((0 - minY) / range * h)}" x2="${w}" y2="${h - ((0 - minY) / range * h)}" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="2,2"/>
+      ${bars}
+    </svg>`;
+  }
+
+  // 季度趨勢迷你表格
+  let quarterlyTable = '';
+  if (fin.quarterly && fin.quarterly.length > 0) {
+    const recent = fin.quarterly.slice(-5);
+    quarterlyTable = `<div class="overflow-x-auto -mx-2">
+      <table class="text-base font-mono w-full">
+        <thead><tr class="text-stone-500">
+          <th class="text-left px-3 py-2 font-normal">季</th>
+          <th class="text-right px-3 py-2 font-normal">營收(億)</th>
+          <th class="text-right px-3 py-2 font-normal">YoY</th>
+          <th class="text-right px-3 py-2 font-normal">GM</th>
+          <th class="text-right px-3 py-2 font-normal">EPS</th>
+        </tr></thead>
+        <tbody>
+          ${recent.map(q => `<tr class="border-t border-stone-200/50">
+            <td class="px-3 py-2.5 text-stone-700">${q.d.slice(2)}</td>
+            <td class="text-right px-3 py-2.5 text-stone-800">${q.rev != null ? q.rev.toLocaleString(undefined, {maximumFractionDigits: 0}) : '—'}</td>
+            <td class="text-right px-3 py-2.5 ${yColor(q.yoy)}">${yFmt(q.yoy)}</td>
+            <td class="text-right px-3 py-2.5 text-stone-700">${q.gm != null ? q.gm + '%' : '—'}</td>
+            <td class="text-right px-3 py-2.5 text-stone-700">${q.eps != null ? q.eps.toFixed(2) : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  return `<div class="bg-gradient-to-br from-rose-50/50 to-amber-50/50 rounded-xl p-4 border border-rose-100/50">
+    <div class="flex items-baseline justify-between mb-3">
+      <div class="text-xs tracking-widest uppercase text-stone-500">💰 財務動能</div>
+      <div class="text-xs text-stone-400 font-mono">FinMind · 最新 ${s.latest_month || '—'}</div>
+    </div>
+
+    <!-- 主指標：最新月 YoY -->
+    <div class="flex items-baseline justify-between mb-3">
+      <div>
+        <div class="text-sm text-stone-500 mb-1">最新月營收 YoY</div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold ${yColor(s.latest_month_yoy)} font-mono">${yArrow(s.latest_month_yoy)} ${yFmt(s.latest_month_yoy)}</span>
+          ${momentumBadge}
+        </div>
+      </div>
+    </div>
+
+    <!-- 月營收 YoY sparkline -->
+    ${monthlySpark ? `<div class="mb-3">
+      <div class="text-sm text-stone-500 mb-1">過去 12 個月 YoY 趨勢</div>
+      ${monthlySpark}
+    </div>` : ''}
+
+    <!-- 摘要指標 grid -->
+    <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+      <div class="bg-white/60 rounded-lg p-2">
+        <div class="text-xs text-stone-500">連續正成長</div>
+        <div class="text-xl font-bold ${(s.consecutive_growth_months || 0) > 0 ? 'text-rose-600' : 'text-stone-500'}">${s.consecutive_growth_months || 0} 月</div>
+      </div>
+      <div class="bg-white/60 rounded-lg p-2">
+        <div class="text-xs text-stone-500">12 月均 YoY</div>
+        <div class="text-xl font-bold ${yColor(s.avg_yoy_12m)}">${yFmt(s.avg_yoy_12m)}</div>
+      </div>
+      <div class="bg-white/60 rounded-lg p-2">
+        <div class="text-xs text-stone-500">最新季 GM</div>
+        <div class="text-xl font-bold text-stone-700">${s.latest_gm != null ? s.latest_gm + '%' : '—'}</div>
+        ${s.gm_trend != null ? `<div class="text-xs ${s.gm_trend > 0 ? 'text-rose-600' : 'text-emerald-600'}">${s.gm_trend > 0 ? '↑' : '↓'}${Math.abs(s.gm_trend).toFixed(1)}pp (4Q)</div>` : ''}
+      </div>
+    </div>
+
+    <!-- 季度趨勢表 -->
+    ${quarterlyTable ? `<div>
+      <div class="text-sm text-stone-500 mb-2">最近 5 季</div>
+      ${quarterlyTable}
+    </div>` : ''}
+  </div>`;
+}
+
+function openCentralDetail(ticker) {
+  const s = STOCKS_DB[ticker];
+  if (!s) return;
+  const c = CONFIDENCE_MAP[ticker];
+
+  const mappingDisplay = {
+    'AI伺服器V2': 'AI 伺服器',
+    'FOPLPV1.1': 'FOPLP / 玻璃基板',
+    'FOPLP V1.1': 'FOPLP / 玻璃基板',
+    '機器人V1': '機器人 / 自動化',
+    '電力鏈V1': 'AIDC 電力鏈',
+  };
+
+  const huitai = s.huitai ? '<span class="text-base bg-amber-50 px-2.5 py-1.5 rounded-full text-amber-700">⭐ 輝台宴點名</span>' : '';
+  const confBadge = c ? `<span class="text-base bg-white border border-stone-200 px-3 py-1.5 rounded-full">${c.emoji} ${c.level}</span>` : '';
+
+  const customers = s.customers && s.customers.length > 0 ?
+    `<div class="bg-stone-50 rounded-xl p-4">
+      <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-2">主要客戶</div>
+      <div class="flex flex-wrap gap-1.5">${s.customers.map(c => `<span class="text-base bg-white border border-stone-200 px-3 py-1.5 rounded-lg">${c}</span>`).join('')}</div>
+    </div>` : '';
+
+  const yuanta = (s.yuanta && s.yuanta !== '未評等') ? `
+    <div class="bg-amber-50/60 rounded-xl p-4 border border-amber-100">
+      <div class="text-[10px] tracking-widest uppercase text-amber-700 mb-1 font-semibold">元大評等 · 參考標籤</div>
+      <div class="flex items-baseline gap-3">
+        <span class="text-xl font-semibold text-amber-800">${s.yuanta}</span>
+        ${s.tp ? `<span class="text-base text-stone-600">TP <span class="font-mono font-semibold">${s.tp.toLocaleString()}</span></span>` : '<span class="text-xs text-stone-500">無 TP</span>'}
+      </div>
+      <p class="text-[10px] text-stone-500 mt-1">不作為投資建議 · 動能派只當參考標籤</p>
+    </div>` : '';
+
+  const signals = (c && c.signals) ? `
+    <div class="bg-stone-50 rounded-xl p-4">
+      <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-2">法說會關鍵訊號 / 營收線索</div>
+      <p class="text-base text-stone-700 leading-relaxed">${c.signals}</p>
+    </div>` : '';
+
+  const sources = (c && c.sources) ? `
+    <div class="bg-stone-100/60 rounded-xl p-3">
+      <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-1">逐字稿來源</div>
+      <p class="text-base font-medium text-stone-700">${c.sources}</p>
+      <p class="text-[10px] text-stone-500 mt-1">第一人稱發言為 transcript_bonus 加分來源</p>
+    </div>` :
+    `<div class="bg-stone-100/60 rounded-xl p-3">
+      <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-1">逐字稿來源</div>
+      <p class="text-base text-stone-500 italic">尚無逐字稿 — 僅靠元大研報 / 輝台宴⭐ / 同業表覆蓋</p>
+    </div>`;
+
+  const cross = (s.cross && s.cross.length > 0) ? `
+    <div class="bg-stone-50 rounded-xl p-4">
+      <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-2">跨題材標記</div>
+      <div class="space-y-2">
+        ${s.cross.map(cr => `
+          <div class="flex gap-2 items-start">
+            <span class="text-sm bg-white border border-stone-200 px-2.5 py-1.5 rounded-lg shrink-0">${mappingDisplay[cr.mapping] || cr.mapping}</span>
+            <span class="text-sm text-stone-600 pt-1.5">${cr.role}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : '';
+
+  document.getElementById('central-detail-content').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-1">${mappingDisplay[s.mapping] || s.mapping} · ${s.layer} · ${s.subcategory}</div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-sm text-stone-500 font-mono">${s.ticker}</span>
+          <h2 class="text-4xl font-bold leading-tight">${s.name}</h2>
+        </div>
+      </div>
+      <button onclick="closeCentralDetail()" class="text-stone-400 text-3xl leading-none w-10 h-10 flex items-center justify-center hover:bg-stone-100 rounded-full">×</button>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mb-5">
+      ${confBadge}
+      ${huitai}
+    </div>
+
+    <div class="space-y-3">
+      <div class="bg-stone-50 rounded-xl p-4">
+        <div class="text-[10px] tracking-widest uppercase text-stone-500 mb-2">業務內容</div>
+        <p class="text-base font-medium text-stone-800 mb-2">${s.role || s.subcategory}</p>
+        ${s.desc ? `<p class="text-sm text-stone-600 leading-relaxed">${s.desc}</p>` : '<p class="text-[10px] text-stone-400 italic">公司介紹尚未填入（mapping 內 desc 欄為空）— 之後可補維基/官網內容</p>'}
+      </div>
+
+      ${renderFinancialBlock(s.ticker)}
+
+      ${customers}
+      ${signals}
+      ${yuanta}
+      ${sources}
+      ${cross}
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="
+          navigator.clipboard.writeText('TWSE:${s.ticker}');
+          window.open('https://www.tradingview.com/chart/?symbol=TWSE:${s.ticker}', '_blank');
+          this.innerHTML = '✓ 已開啟並複製 TWSE:${s.ticker}';
+          setTimeout(()=>this.innerHTML = '↗ TradingView 圖表 <span class=&quot;opacity-60 text-sm&quot;>(同步複製股號)</span>', 2500);
+        " class="flex-1 text-center py-3 bg-stone-800 hover:bg-stone-900 text-white rounded-full text-sm font-medium transition">↗ TradingView 圖表 <span class="opacity-60 text-sm">(同步複製股號)</span></button>
+        <button onclick="closeCentralDetail()" class="px-5 py-3 bg-white border border-stone-200 rounded-full text-sm hover:bg-stone-50 transition">關閉</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('central-detail-panel').classList.remove('hidden');
+}
+
+function closeCentralDetail() {
+  document.getElementById('central-detail-panel').classList.add('hidden');
+}
+
+// 初始化
+renderSuggestions();
+
+// 支援 URL 參數 ?ticker=XXXX（讓 Scanner 等外部頁面能連結進來）
+const urlParams = new URLSearchParams(window.location.search);
+const initialTicker = urlParams.get('ticker');
+render((initialTicker && STOCKS_DB[initialTicker]) ? initialTicker : '6669');
+
+// 題材切換 chip 綁定（只綁一次）
+document.querySelectorAll('.theme-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const target = chip.dataset.jump;
+    if (STOCKS_DB[target]) {
+      render(target);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+});
+
+// 依當前個股所屬 mapping 高亮對應的 chip
+function highlightThemeChip(mappingName) {
+  // mapping → chip 代表股
+  const mapToChip = {
+    'AI伺服器V2': '6669',
+    'FOPLPV1.1': '6239',
+    'FOPLP V1.1': '6239',
+    '機器人V1': '2049',
+    '電力鏈V1': '1519',
+  };
+  const activeJump = mapToChip[mappingName];
+  document.querySelectorAll('.theme-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.jump === activeJump);
+  });
+}
+</script>
+</body>
+</html>

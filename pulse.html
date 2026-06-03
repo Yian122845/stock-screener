@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse v0.3 — 題材選股共學系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --navy: #1a1a2e;
+    --ink: #2b2b3d;
+    --paper: #fafaf6;
+    --paper2: #f4f1eb;
+    --lilac: #ECE9F7;
+    --sky: #DDE9F5;
+    --mint: #E0EDDB;
+    --sand: #F5ECDD;
+    --cream: #F5EFDD;
+    --blush: #F5DDE5;
+    --rose: #e11d48;
+    --emerald: #047857;
+  }
+  body {
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #f0eafa 0%, transparent 60%),
+      radial-gradient(800px 500px at -10% 100%, #fef3e8 0%, transparent 60%),
+      linear-gradient(180deg, #fafaf6 0%, #f4f1eb 100%);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+  .font-display { font-family: 'Fraunces', serif; font-optical-sizing: auto; }
+  .font-script { font-family: 'Caveat', cursive; }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  .fade-up { animation: fadeUp 0.5s ease both; }
+
+  .bg-paper { background: var(--paper); }
+  .bg-paper2 { background: var(--paper2); }
+  .bg-lilac { background: var(--lilac); }
+  .bg-sky { background: var(--sky); }
+  .bg-mint { background: var(--mint); }
+  .bg-sand { background: var(--sand); }
+  .bg-cream { background: var(--cream); }
+  .bg-blush { background: var(--blush); }
+  .bg-navy { background: var(--navy); }
+
+  .ring-paper { box-shadow: 0 1px 0 0 rgba(0,0,0,0.04), 0 8px 24px -8px rgba(26,26,46,0.08); }
+  .grain {
+    background-image: radial-gradient(rgba(26,26,46,0.04) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+
+  /* 信心徽章 */
+  .badge-conf {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  }
+  .badge-strong { background: rgba(4,120,87,0.08); color: var(--emerald); }
+  .badge-medium { background: rgba(217,119,6,0.10); color: #b45309; }
+  .badge-weak { background: rgba(100,116,139,0.10); color: #475569; }
+
+  /* hover */
+  .hover-lift { transition: transform 200ms ease, box-shadow 200ms ease; }
+  .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 20px -8px rgba(26,26,46,0.18); }
+
+  .divider-dot {
+    background-image: radial-gradient(circle, rgba(26,26,46,0.25) 1px, transparent 1px);
+    background-size: 6px 6px; height: 6px; width: 100%; opacity: 0.4;
+  }
+
+  /* 連結線 hover */
+  .stock-card { cursor: pointer; }
+  .stock-card:hover { background: white; }
+
+  /* Detail Panel */
+  #detail-panel { transition: transform 280ms cubic-bezier(0.4,0,0.2,1); transform: translateY(100%); }
+  #detail-panel.open { transform: translateY(0); }
+</style>
+<script src="data/themes.js"></script>
+<script src="data/financials.js"></script>
+<script src="data/stocks.js"></script>
+<script src="data/signals.js"></script>
+<script src="data/timeline.js"></script>
+</head>
+<body class="text-navy">
+
+<!-- TOP NAV -->
+<header class="sticky top-0 z-20 backdrop-blur bg-paper/80 border-b border-slate-200/60">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
+    <div class="flex items-baseline gap-3">
+      <h1 class="font-script text-4xl leading-none" style="color: var(--navy)">Pulse</h1>
+      <span class="text-[10px] tracking-widest uppercase text-slate-500">v0.5 共學雛形</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] text-slate-400 font-mono">2026-06-02</span>
+    </div>
+  </div>
+  <div class="max-w-6xl mx-auto px-5 pb-2">
+    <div class="flex gap-1 text-sm">
+      <button data-tab="themes" class="tab-btn px-4 py-1.5 rounded-full bg-navy text-white font-medium" style="background: var(--navy)">題材</button>
+      <button data-tab="stocks" class="tab-btn px-4 py-1.5 rounded-full text-slate-500 hover:text-navy">個股庫</button>
+      <button data-tab="signals" class="tab-btn px-4 py-1.5 rounded-full text-slate-500 hover:text-navy">跨點訊號</button>
+      <button data-tab="timeline" class="tab-btn px-4 py-1.5 rounded-full text-slate-500 hover:text-navy">時序軸</button>
+      <button data-tab="about" class="tab-btn px-4 py-1.5 rounded-full text-slate-500 hover:text-navy">關於</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 py-6">
+
+<!-- TAB: THEMES -->
+<section id="tab-themes">
+  <div class="mb-5 fade-up">
+    <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">DASHBOARD</p>
+    <h2 class="font-display text-4xl md:text-5xl font-medium leading-tight tracking-tight mb-2">產業題材總覽</h2>
+    <p class="text-sm text-slate-600 max-w-2xl leading-relaxed">五個已建立的題材 mapping。每個題材標示「個股數 × 強信心檔 × 重要時序事件」 — 點進去看完整供應鏈。</p>
+  </div>
+
+  <div id="themes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"></div>
+
+  <!-- 推薦個股（跨題材重疊） -->
+  <div class="mb-8">
+    <div class="flex items-baseline justify-between mb-3">
+      <h3 class="font-display text-2xl font-medium">跨題材重疊個股</h3>
+      <span class="text-xs text-slate-500">多題材標的 = 訊號疊加機會</span>
+    </div>
+    <div id="multi-theme-list" class="space-y-2"></div>
+  </div>
+
+  <div class="divider-dot mb-6"></div>
+
+  <!-- Quote -->
+  <div class="mb-8">
+    <p class="font-script text-3xl leading-tight mb-1">「跨點訊號 &gt; 單點深度。」</p>
+    <p class="text-xs text-slate-500">一家公司講的話是視角，2+ 家互相驗證才是事實 — Entry 004 方法論</p>
+  </div>
+</section>
+
+<!-- TAB: STOCKS -->
+<section id="tab-stocks" class="hidden">
+  <div class="mb-5 fade-up">
+    <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">STOCK DATABASE</p>
+    <h2 class="font-display text-4xl md:text-5xl font-medium leading-tight tracking-tight mb-2">個股庫</h2>
+    <p class="text-sm text-slate-600 max-w-2xl leading-relaxed">所有 mapping 內個股 — 可按信心、題材、輝台宴點名篩選。點卡片看詳情。</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="mb-5 flex flex-wrap gap-2 items-center">
+    <div class="flex gap-1 bg-white/70 rounded-full p-1 border border-slate-200/60 text-xs">
+      <button data-filter-conf="all" class="filter-conf px-3 py-1 rounded-full bg-navy text-white" style="background: var(--navy)">全部</button>
+      <button data-filter-conf="🟢" class="filter-conf px-3 py-1 rounded-full text-slate-600">🟢 STRONG</button>
+      <button data-filter-conf="🟡" class="filter-conf px-3 py-1 rounded-full text-slate-600">🟡 MEDIUM</button>
+      <button data-filter-conf="⚪" class="filter-conf px-3 py-1 rounded-full text-slate-600">⚪ WEAK</button>
+    </div>
+    <div class="flex gap-1 bg-white/70 rounded-full p-1 border border-slate-200/60 text-xs" id="theme-filters"></div>
+    <button id="filter-huitai" class="px-3 py-1.5 rounded-full bg-white/70 border border-slate-200/60 text-xs text-slate-600">⭐ 只顯示輝台宴</button>
+    <input id="stock-search" placeholder="搜尋代碼/名稱" class="ml-auto px-3 py-1.5 rounded-full bg-white/70 border border-slate-200/60 text-xs w-40">
+  </div>
+  <p class="text-xs text-slate-500 mb-3" id="stock-count">— 載入中 —</p>
+  <div id="stock-list" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+</section>
+
+<!-- TAB: CROSS-POINT SIGNALS -->
+<section id="tab-signals" class="hidden">
+  <div class="mb-5 fade-up">
+    <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">CROSS-POINT VALIDATION</p>
+    <h2 class="font-display text-4xl md:text-5xl font-medium leading-tight tracking-tight mb-2">跨點訊號矩陣</h2>
+    <p class="text-sm text-slate-600 max-w-2xl leading-relaxed">從 18 份法說會逐字稿萃取的「多家公司互相驗證」訊號。單點 = 視角；2+ 點 = 事實。</p>
+  </div>
+  <div id="signals-list" class="space-y-3"></div>
+</section>
+
+<!-- TAB: TIMELINE -->
+<section id="tab-timeline" class="hidden">
+  <div class="mb-5 fade-up">
+    <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">CATALYST CALENDAR</p>
+    <h2 class="font-display text-4xl md:text-5xl font-medium leading-tight tracking-tight mb-2">時序軸</h2>
+    <p class="text-sm text-slate-600 max-w-2xl leading-relaxed">動能派最有用的不是「看好誰」而是「什麼時候會發生」 — 18 份逐字稿萃取的事件錨點。</p>
+  </div>
+  <div id="timeline-list" class="space-y-4"></div>
+</section>
+
+<!-- TAB: ABOUT -->
+<section id="tab-about" class="hidden">
+  <div class="mb-5 fade-up">
+    <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">METHODOLOGY</p>
+    <h2 class="font-display text-4xl md:text-5xl font-medium leading-tight tracking-tight mb-2">方法論與信心評級</h2>
+  </div>
+  <div class="prose prose-sm max-w-3xl text-slate-700 space-y-4">
+    <div class="bg-paper2 rounded-2xl p-5">
+      <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-2">信心三級制</p>
+      <div class="space-y-3 text-sm">
+        <div><span class="badge-conf badge-strong">🟢 STRONG</span> final_score ≥ 4 — 元大評等 + TP + 逐字稿 / 多家交叉驗證</div>
+        <div><span class="badge-conf badge-medium">🟡 MEDIUM</span> final_score 2-3 — 部分資料，但缺評等或交叉驗證</div>
+        <div><span class="badge-conf badge-weak">⚪ WEAK</span> final_score ≤ 1 — 僅靠題材聯動或輝台宴⭐</div>
+      </div>
+    </div>
+
+    <div class="bg-paper2 rounded-2xl p-5">
+      <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-2">評分公式</p>
+      <p class="text-sm font-mono">final_score = base_score + transcript_bonus</p>
+      <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+        base_score 反映「資料密度」（有沒有元大 rating / TP / source_report / 輝台宴⭐）<br>
+        transcript_bonus 反映「逐字稿驗證強度」（公司管理層第一人稱發言、多家互相驗證）
+      </p>
+    </div>
+
+    <div class="bg-paper2 rounded-2xl p-5">
+      <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-2">資料來源</p>
+      <ul class="text-sm space-y-1">
+        <li>· 元大證券 8+ 份研報（GTC 0602、組裝零組件 0413、TSMC 0416、KYEC 0511、Wiwynn 0511、健鼎 0518、瑞峰 0525、矽光子 0601 等）</li>
+        <li>· 工研院 FOPLP V3.1（P40 量產資訊）</li>
+        <li>· 18 份公司法說會逐字稿（台積電、鴻海、廣達、緯穎、奇鋐、健策、欣興、日月光、台達電、盟立、上銀、東元、士電、中興電、華城等）</li>
+        <li>· ETtoday 輝台宴報導（NVIDIA Vera Rubin 整櫃級供應鏈官方點名）</li>
+      </ul>
+    </div>
+
+    <div class="bg-paper2 rounded-2xl p-5">
+      <p class="text-[10px] tracking-widest uppercase text-slate-500 mb-2">Pulse 不做什麼</p>
+      <ul class="text-sm space-y-1 text-slate-600">
+        <li>✗ 不自動下單</li>
+        <li>✗ 不給個股目標價作為投資建議</li>
+        <li>✗ 不主動推薦個股（元大 TP 只當參考標籤）</li>
+        <li>✗ 不重造圖表輪子（直接 link TradingView）</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- DETAIL PANEL -->
+<div id="detail-panel" class="fixed inset-x-0 bottom-0 top-16 bg-paper z-30 overflow-y-auto shadow-2xl border-t border-slate-200 rounded-t-3xl">
+  <div id="detail-content" class="max-w-5xl mx-auto p-5 md:p-8"></div>
+</div>
+
+<footer class="max-w-6xl mx-auto px-5 py-8 mt-10 border-t border-slate-200/60">
+  <p class="text-[10px] text-slate-400 leading-relaxed">
+    Pulse v0.5 — 共學雛形 · 漲紅跌綠 (台股慣例) · 資料為 mapping 真實 + FinMind 財務 + mock 即時數<br>
+    <span class="text-slate-500">v0.5 新增：</span>個股 detail 加「💰 財務動能」區塊（FinMind 89 檔月營收 YoY sparkline + 季度損益 + 連續正成長月數 + 毛利率趨勢）。
+  </p>
+</footer>
+
+<script>
+// =================================================================
+// 真實 mapping 資料（從 5 份 CSV 萃取重點）
+// =================================================================
+// =================================================================
+// 資料層：從 data/*.js 載入（Level 2 重構）
+// 維護方式：
+//   - 想改個股 → 編輯 data/stocks.js
+//   - 想改題材 → 編輯 data/themes.js
+//   - 想改訊號/時序 → 編輯 data/signals.js / data/timeline.js
+//   - FinMind 動能 → 跑 update_financials.py（自動更新 data/financials.js）
+// 跨檔案引用：HTML 內可直接用 STOCKS / THEMES / FINANCIALS / SIGNALS / TIMELINE
+// =================================================================
+const THEMES = window.PULSE_THEMES;
+const FINANCIALS = window.PULSE_FINANCIALS;
+const STOCKS = window.PULSE_STOCKS;
+const SIGNALS = window.PULSE_SIGNALS;
+const TIMELINE = window.PULSE_TIMELINE;
+
+
+// =================================================================
+// Render
+// =================================================================
+function badgeConf(c) {
+  if (c === '🟢') return '<span class="badge-conf badge-strong">🟢 STRONG</span>';
+  if (c === '🟡') return '<span class="badge-conf badge-medium">🟡 MEDIUM</span>';
+  return '<span class="badge-conf badge-weak">⚪ WEAK</span>';
+}
+function changeColor(pct) { return pct > 0 ? 'text-rose-600' : pct < 0 ? 'text-emerald-600' : 'text-slate-500'; }
+function changeArrow(pct) { return pct > 0 ? '▲' : pct < 0 ? '▼' : '·'; }
+function themeName(id) { const t = THEMES.find(x => x.id === id); return t ? t.name : id; }
+
+// Themes Tab
+function renderThemes() {
+  document.getElementById('themes-grid').innerHTML = THEMES.map((t, i) => `
+    <div class="${t.color} rounded-3xl p-6 hover-lift cursor-pointer fade-up" style="animation-delay:${i * 0.06}s" onclick="filterByTheme('${t.id}')">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">${t.version}</div>
+          <h3 class="font-display text-2xl font-medium leading-tight">${t.icon} ${t.name}</h3>
+        </div>
+        <span class="text-xs text-slate-400">→</span>
+      </div>
+      <div class="flex items-baseline gap-4 mb-3">
+        <div>
+          <div class="text-3xl font-display font-medium">${t.count}</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">總檔</div>
+        </div>
+        <div>
+          <div class="text-3xl font-display font-medium text-emerald-700">${t.strong}</div>
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">🟢 強信心</div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed mb-2">${t.desc}</p>
+      <div class="text-[11px] text-slate-700 bg-white/60 px-3 py-2 rounded-xl">
+        <span class="text-[9px] uppercase tracking-widest text-slate-500">下個催化劑</span><br>
+        ${t.catalyst}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Multi-theme stocks
+function renderMultiTheme() {
+  const multi = STOCKS.filter(s => s.themes.length >= 2).sort((a,b) => b.themes.length - a.themes.length || b.score - a.score);
+  document.getElementById('multi-theme-list').innerHTML = multi.map(s => `
+    <div class="bg-white/70 backdrop-blur rounded-2xl p-3 border border-slate-200/60 hover-lift cursor-pointer stock-card" onclick="openDetail('${s.ticker}')">
+      <div class="flex items-center gap-3">
+        <div class="w-12 text-center">
+          <div class="font-mono text-xs text-slate-500">${s.ticker}</div>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-bold">${s.name}</span>
+            ${badgeConf(s.confidence)}
+            ${s.huitai ? '<span class="text-xs">⭐</span>' : ''}
+          </div>
+          <div class="flex flex-wrap gap-1">
+            ${s.themes.map(t => `<span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">${themeName(t)}</span>`).join('')}
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="font-mono text-sm">${s.mock_price.toLocaleString()}</div>
+          <div class="text-xs font-mono ${changeColor(s.mock_change)}">${changeArrow(s.mock_change)} ${s.mock_change > 0 ? '+' : ''}${s.mock_change.toFixed(2)}%</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Stocks Tab
+let filterConf = 'all';
+let filterTheme = 'all';
+let filterHuitai = false;
+let searchQuery = '';
+
+function renderThemeFilterButtons() {
+  const html = ['<button data-filter-theme="all" class="filter-theme px-3 py-1 rounded-full bg-navy text-white" style="background: var(--navy)">全題材</button>']
+    .concat(THEMES.map(t => `<button data-filter-theme="${t.id}" class="filter-theme px-3 py-1 rounded-full text-slate-600">${t.icon} ${t.name.replace(/\s*\/.*/, '')}</button>`))
+    .join('');
+  document.getElementById('theme-filters').innerHTML = html;
+  document.querySelectorAll('.filter-theme').forEach(b => {
+    b.onclick = () => {
+      filterTheme = b.dataset.filterTheme;
+      document.querySelectorAll('.filter-theme').forEach(x => { x.style.background = 'transparent'; x.classList.remove('text-white'); x.classList.add('text-slate-600'); });
+      b.style.background = 'var(--navy)'; b.classList.remove('text-slate-600'); b.classList.add('text-white');
+      renderStocks();
+    };
+  });
+}
+
+function renderStocks() {
+  let list = STOCKS.slice();
+  if (filterConf !== 'all') list = list.filter(s => s.confidence === filterConf);
+  if (filterTheme !== 'all') list = list.filter(s => s.themes.includes(filterTheme));
+  if (filterHuitai) list = list.filter(s => s.huitai);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter(s => s.ticker.includes(q) || s.name.toLowerCase().includes(q));
+  }
+  list.sort((a,b) => b.score - a.score);
+  document.getElementById('stock-count').innerText = `${list.length} 檔`;
+  document.getElementById('stock-list').innerHTML = list.map(s => `
+    <div class="bg-white/80 hover:bg-white rounded-2xl p-3 border border-slate-200/60 cursor-pointer stock-card hover-lift" onclick="openDetail('${s.ticker}')">
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline gap-2 mb-1">
+            <span class="font-mono text-xs text-slate-500">${s.ticker}</span>
+            <span class="font-bold">${s.name}</span>
+            ${s.huitai ? '<span class="text-xs">⭐</span>' : ''}
+          </div>
+          <div class="text-xs text-slate-600 mb-1 line-clamp-1">${s.role}</div>
+          <div class="flex items-center gap-2">
+            ${badgeConf(s.confidence)}
+            <span class="text-[10px] text-slate-400 font-mono">score ${s.score}</span>
+          </div>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="font-mono text-sm font-medium">${s.mock_price.toLocaleString()}</div>
+          <div class="text-xs font-mono ${changeColor(s.mock_change)}">${changeArrow(s.mock_change)} ${s.mock_change > 0 ? '+' : ''}${s.mock_change.toFixed(2)}%</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Signals Tab
+function renderSignals() {
+  document.getElementById('signals-list').innerHTML = SIGNALS.map((sig, i) => `
+    <div class="bg-white/80 backdrop-blur rounded-2xl p-5 border border-slate-200/60 fade-up" style="animation-delay:${i * 0.04}s">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <h4 class="font-display text-lg font-medium leading-tight">${sig.name}</h4>
+        ${badgeConf(sig.strength)}
+      </div>
+      <div class="space-y-2 text-sm">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-slate-500">驗證來源</span>
+          <p class="text-slate-700">${sig.sources}</p>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-slate-500">影響個股</span>
+          <p class="font-mono text-xs text-slate-700">${sig.stocks}</p>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase tracking-widest text-slate-500">解讀</span>
+          <p class="text-slate-600 italic">${sig.insight}</p>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Timeline Tab
+function renderTimeline() {
+  document.getElementById('timeline-list').innerHTML = TIMELINE.map((block, bi) => `
+    <div class="fade-up" style="animation-delay:${bi * 0.08}s">
+      <div class="flex items-baseline gap-3 mb-3">
+        <h3 class="font-display text-3xl font-medium">${block.month}</h3>
+        <span class="text-xs text-slate-500 uppercase tracking-widest">${block.period}</span>
+      </div>
+      <div class="space-y-2 ml-1">
+        ${block.events.map(e => `
+          <div class="bg-white/80 rounded-2xl p-4 border border-slate-200/60 flex gap-3 items-start">
+            <div class="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+            <div class="flex-1">
+              <div class="font-medium mb-1">${e.event}</div>
+              <div class="text-xs text-slate-600 mb-1">${e.impact}</div>
+              <div class="text-[11px] font-mono text-slate-500">→ ${e.stocks}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Detail panel
+// 共用：渲染財務動能區塊
+function renderFinancialBlock(ticker) {
+  const fin = (typeof FINANCIALS !== 'undefined') ? FINANCIALS[ticker] : null;
+  if (!fin || !fin.summary) {
+    return `<div class="bg-slate-100/60 rounded-2xl p-3">
+      <div class="text-[10px] tracking-widest uppercase text-slate-500 mb-1">💰 財務動能</div>
+      <p class="text-sm text-slate-500 italic">FinMind 無 ${ticker} 資料（可能為興櫃股或新上市）</p>
+    </div>`;
+  }
+  const s = fin.summary;
+  const yColor = (v) => v == null ? 'text-slate-400' : (v > 0 ? 'text-rose-600' : v < 0 ? 'text-emerald-600' : 'text-slate-500');
+  const yArrow = (v) => v == null ? '·' : (v > 0 ? '▲' : v < 0 ? '▼' : '·');
+  const yFmt = (v, suffix = '%') => v == null ? '—' : `${v > 0 ? '+' : ''}${v}${suffix}`;
+
+  let momentumBadge = '';
+  if (s.consecutive_growth_months >= 12) momentumBadge = '<span class="text-xs bg-rose-50 text-rose-700 px-2 py-1 rounded-full">🔥 連續 12 月+</span>';
+  else if (s.consecutive_growth_months >= 6) momentumBadge = '<span class="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">📈 連續 6 月+</span>';
+  else if ((s.consecutive_growth_months || 0) <= 0 && s.latest_month_yoy != null && s.latest_month_yoy < 0) momentumBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">📉 衰退中</span>';
+
+  let monthlySpark = '';
+  if (fin.monthly && fin.monthly.length > 0) {
+    const w = 280, h = 50;
+    const yoys = fin.monthly.map(m => m.yoy || 0);
+    const maxY = Math.max(...yoys, 30);
+    const minY = Math.min(...yoys, -10);
+    const range = maxY - minY || 1;
+    const barW = w / fin.monthly.length;
+    const bars = fin.monthly.map((m, i) => {
+      const y0 = h - ((0 - minY) / range * h);
+      const y1 = h - ((m.yoy - minY) / range * h);
+      const color = (m.yoy || 0) > 0 ? '#e11d48' : '#047857';
+      const top = Math.min(y0, y1);
+      const height = Math.abs(y1 - y0);
+      return `<rect x="${i * barW + 1}" y="${top}" width="${barW - 2}" height="${height}" fill="${color}" opacity="0.7"><title>${m.d}: YoY ${yFmt(m.yoy)}</title></rect>`;
+    }).join('');
+    monthlySpark = `<svg viewBox="0 0 ${w} ${h}" class="w-full" style="height: 50px;">
+      <line x1="0" y1="${h - ((0 - minY) / range * h)}" x2="${w}" y2="${h - ((0 - minY) / range * h)}" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="2,2"/>
+      ${bars}
+    </svg>`;
+  }
+
+  let quarterlyTable = '';
+  if (fin.quarterly && fin.quarterly.length > 0) {
+    const recent = fin.quarterly.slice(-5);
+    quarterlyTable = `<div class="overflow-x-auto -mx-2">
+      <table class="text-base font-mono w-full">
+        <thead><tr class="text-slate-500">
+          <th class="text-left px-3 py-2 font-normal">季</th>
+          <th class="text-right px-3 py-2 font-normal">營收(億)</th>
+          <th class="text-right px-3 py-2 font-normal">YoY</th>
+          <th class="text-right px-3 py-2 font-normal">GM</th>
+          <th class="text-right px-3 py-2 font-normal">EPS</th>
+        </tr></thead>
+        <tbody>
+          ${recent.map(q => `<tr class="border-t border-slate-200/50">
+            <td class="px-3 py-2.5 text-slate-700">${q.d.slice(2)}</td>
+            <td class="text-right px-3 py-2.5 text-slate-800">${q.rev != null ? q.rev.toLocaleString(undefined, {maximumFractionDigits: 0}) : '—'}</td>
+            <td class="text-right px-3 py-2.5 ${yColor(q.yoy)}">${yFmt(q.yoy)}</td>
+            <td class="text-right px-3 py-2.5 text-slate-700">${q.gm != null ? q.gm + '%' : '—'}</td>
+            <td class="text-right px-3 py-2.5 text-slate-700">${q.eps != null ? q.eps.toFixed(2) : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  return `<div class="rounded-2xl p-4 border border-rose-100/50" style="background: linear-gradient(135deg, rgba(244,114,182,0.06), rgba(251,191,36,0.06));">
+    <div class="flex items-baseline justify-between mb-3">
+      <div class="text-xs tracking-widest uppercase text-slate-500">💰 財務動能</div>
+      <div class="text-xs text-slate-400 font-mono">FinMind · ${s.latest_month || '—'}</div>
+    </div>
+    <div class="flex items-baseline justify-between mb-3">
+      <div>
+        <div class="text-sm text-slate-500 mb-1">最新月營收 YoY</div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold ${yColor(s.latest_month_yoy)} font-mono">${yArrow(s.latest_month_yoy)} ${yFmt(s.latest_month_yoy)}</span>
+          ${momentumBadge}
+        </div>
+      </div>
+    </div>
+    ${monthlySpark ? `<div class="mb-3">
+      <div class="text-sm text-slate-500 mb-1">過去 12 個月 YoY</div>
+      ${monthlySpark}
+    </div>` : ''}
+    <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+      <div class="bg-white/60 rounded-lg p-2">
+        <div class="text-xs text-slate-500">連續正成長</div>
+        <div class="text-xl font-bold ${(s.consecutive_growth_months || 0) > 0 ? 'text-rose-600' : 'text-slate-500'}">${s.consecutive_growth_months || 0} 月</div>
+      </div>
+      <div class="bg-white/60 rounded-lg p-2">
+        <div class="text-xs text-slate-500">12 月均 YoY</div>
+        <div class="text-xl font-bold ${yColor(s.avg_yoy_12m)}">${yFmt(s.avg_yoy_12m)}</div>
+      </div>
+      <div class="bg-white/60 rounded-lg p-2">
+        <div class="text-xs text-slate-500">最新季 GM</div>
+        <div class="text-xl font-bold text-slate-700">${s.latest_gm != null ? s.latest_gm + '%' : '—'}</div>
+        ${s.gm_trend != null ? `<div class="text-xs ${s.gm_trend > 0 ? 'text-rose-600' : 'text-emerald-600'}">${s.gm_trend > 0 ? '↑' : '↓'}${Math.abs(s.gm_trend).toFixed(1)}pp (4Q)</div>` : ''}
+      </div>
+    </div>
+    ${quarterlyTable ? `<div>
+      <div class="text-sm text-slate-500 mb-2">最近 5 季</div>
+      ${quarterlyTable}
+    </div>` : ''}
+  </div>`;
+}
+
+function openDetail(ticker) {
+  const s = STOCKS.find(x => x.ticker === ticker);
+  if (!s) return;
+  const themesHtml = s.themes.map(t => `<span class="text-xs bg-white/80 px-2.5 py-1 rounded-full">${THEMES.find(x=>x.id===t)?.icon||''} ${themeName(t)}</span>`).join('');
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <div class="font-mono text-sm text-slate-500 mb-1">${s.ticker}</div>
+        <h2 class="font-display text-5xl font-medium leading-tight">${s.name}</h2>
+      </div>
+      <button id="close-detail" class="text-slate-400 text-4xl leading-none w-12 h-12 flex items-center justify-center hover:bg-slate-100 rounded-full">×</button>
+    </div>
+
+    <div class="flex items-baseline gap-3 mb-6">
+      <span class="text-5xl font-mono font-medium">${s.mock_price.toLocaleString()}</span>
+      <span class="font-mono text-base ${changeColor(s.mock_change)}">${changeArrow(s.mock_change)} ${s.mock_change > 0 ? '+' : ''}${s.mock_change.toFixed(2)}%</span>
+      <span class="text-xs text-slate-500 ml-auto">成交 ${s.mock_vol} 億 (mock)</span>
+    </div>
+
+    <div class="flex items-center gap-2 mb-5">
+      ${badgeConf(s.confidence)}
+      <span class="text-[11px] text-slate-500 font-mono">final_score ${s.score}</span>
+      ${s.huitai ? '<span class="text-xs bg-amber-50 px-2 py-1 rounded-full text-amber-700">⭐ 輝台宴點名</span>' : ''}
+    </div>
+
+    <div class="bg-lilac rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">題材命中</div>
+      <div class="flex flex-wrap gap-2 mb-2">${themesHtml}</div>
+      ${s.themes.length >= 2 ? '<p class="text-[11px] text-slate-600 italic mt-2">多題材標的 — 訊號疊加機會</p>' : ''}
+    </div>
+
+    <div class="bg-paper2 rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">產業角色</div>
+      <p class="text-sm text-slate-700 leading-relaxed">${s.role}</p>
+    </div>
+
+    ${s.cpo_layer ? `
+    <div class="bg-blush rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">CPO 鏈位置</div>
+      <p class="text-sm font-medium">${s.cpo_layer}</p>
+    </div>` : ''}
+
+    <div class="mb-3">${renderFinancialBlock(s.ticker)}</div>
+
+    <div class="bg-paper2 rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">主要客戶</div>
+      <p class="text-sm">${s.customers}</p>
+    </div>
+
+    ${s.yuanta_rating !== '未評等' ? `
+    <div class="bg-sand rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">元大評等 · 參考標籤</div>
+      <div class="flex items-baseline gap-3">
+        <span class="text-lg font-medium text-amber-900">${s.yuanta_rating}</span>
+        ${s.yuanta_tp ? `<span class="text-sm text-slate-600">TP <span class="font-mono font-medium">${s.yuanta_tp.toLocaleString()}</span></span>` : '<span class="text-xs text-slate-400">無 TP</span>'}
+      </div>
+      <p class="text-[10px] text-slate-500 mt-1">不作為投資建議 · 動能派只當參考標籤</p>
+    </div>` : ''}
+
+    <div class="bg-paper2 rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-2">關鍵訊號 (key_signals)</div>
+      <p class="text-sm text-slate-700 leading-relaxed">${s.key_signals}</p>
+    </div>
+
+    ${s.transcript ? `
+    <div class="bg-mint rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">逐字稿驗證</div>
+      <p class="text-sm font-medium">${s.transcript}</p>
+      <p class="text-[10px] text-slate-500 mt-1">第一人稱發言 = transcript_bonus 加分來源</p>
+    </div>` : `
+    <div class="bg-slate-50 rounded-2xl p-4 mb-3">
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">逐字稿驗證</div>
+      <p class="text-sm text-slate-500 italic">尚無逐字稿，僅靠元大研報 / 同業表覆蓋</p>
+    </div>`}
+
+    <div class="flex gap-2 sticky bottom-0 bg-paper pt-3 pb-2 -mx-5 px-5 md:-mx-8 md:px-8 border-t border-slate-100">
+      <a href="mindmap.html?ticker=${s.ticker}" target="_blank" rel="noopener" class="flex-1 text-center py-3 bg-white border border-slate-300 text-navy rounded-full text-sm font-medium hover:bg-slate-50 transition">🧠 上下游心智圖</a>
+      <button onclick="
+        navigator.clipboard.writeText('TWSE:${s.ticker}');
+        window.open('https://www.tradingview.com/chart/?symbol=TWSE:${s.ticker}', '_blank');
+        this.innerHTML = '✓ 已開啟並複製 TWSE:${s.ticker}';
+        setTimeout(()=>this.innerHTML = '↗ TradingView 圖表 <span class=&quot;opacity-60 text-sm&quot;>(同步複製股號)</span>', 2500);
+      " class="flex-1 text-center py-3 bg-navy text-white rounded-full text-sm font-medium hover:opacity-90" style="background: var(--navy)">↗ TradingView 圖表 <span class="opacity-60 text-sm">(同步複製股號)</span></button>
+    </div>
+  `;
+
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('close-detail').onclick = () => document.getElementById('detail-panel').classList.remove('open');
+}
+
+// 從題材卡片跳到個股庫並過濾
+function filterByTheme(themeId) {
+  document.querySelector('[data-tab="stocks"]').click();
+  setTimeout(() => {
+    document.querySelector(`[data-filter-theme="${themeId}"]`).click();
+  }, 50);
+}
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.style.background = 'transparent';
+      b.classList.remove('text-white','font-medium');
+      b.classList.add('text-slate-500');
+    });
+    btn.style.background = 'var(--navy)';
+    btn.classList.add('text-white','font-medium');
+    btn.classList.remove('text-slate-500');
+    ['themes','stocks','signals','timeline','about'].forEach(id => {
+      document.getElementById('tab-' + id).classList.toggle('hidden', id !== tab);
+    });
+  };
+});
+
+// Filter handlers
+document.querySelectorAll('.filter-conf').forEach(b => {
+  b.onclick = () => {
+    filterConf = b.dataset.filterConf;
+    document.querySelectorAll('.filter-conf').forEach(x => { x.style.background = 'transparent'; x.classList.remove('text-white'); x.classList.add('text-slate-600'); });
+    b.style.background = 'var(--navy)'; b.classList.remove('text-slate-600'); b.classList.add('text-white');
+    renderStocks();
+  };
+});
+
+document.getElementById('filter-huitai').onclick = function() {
+  filterHuitai = !filterHuitai;
+  this.style.background = filterHuitai ? 'var(--navy)' : '';
+  this.style.color = filterHuitai ? 'white' : '';
+  renderStocks();
+};
+
+document.getElementById('stock-search').oninput = (e) => {
+  searchQuery = e.target.value;
+  renderStocks();
+};
+
+// Init
+renderThemes();
+renderMultiTheme();
+renderThemeFilterButtons();
+renderStocks();
+renderSignals();
+renderTimeline();
+</script>
+
+</body>
+</html>

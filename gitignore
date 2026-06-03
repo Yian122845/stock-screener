@@ -1,0 +1,19 @@
+# 敏感資料 — 絕對不能上傳！
+finmind_token.txt
+
+# 備份檔（自動產生）
+_backup_financials/
+
+# Python 暫存
+__pycache__/
+*.pyc
+*.pyo
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# 其他
+*.log
